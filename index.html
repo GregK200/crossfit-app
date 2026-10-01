@@ -30,11 +30,7 @@
   </script>
 
   <style>
-    .font-digital {
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: 800;
-      letter-spacing: -0.05em;
-    }
+    .font-digital { font-family: 'Courier New', Courier, monospace; font-weight: 800; letter-spacing: -0.05em; }
     button, input, select, textarea { touch-action: manipulation; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -44,31 +40,22 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.97; transform: scale(1.006); }
     }
-    .timer-active-pulse { animation: subtlePulse 1.5s ease-in-out infinite; }
     
-    /* Light Theme Overrides & Contrast Fixes */
+    /* Light Theme Overrides */
     body.light-theme { background-color: #f1f5f9 !important; }
-    body.light-theme .bg-gym-950, 
-    body.light-theme .bg-gym-900,
-    body.light-theme .bg-gym-850, 
-    body.light-theme .bg-gym-800 {
-      background-color: #ffffff !important; border-color: #e2e8f0 !important;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+    body.light-theme .bg-gym-950, body.light-theme .bg-gym-900,
+    body.light-theme .bg-gym-850, body.light-theme .bg-gym-800 {
+      background-color: #ffffff !important; border-color: #e2e8f0 !important; color: #111827 !important;
     }
-    body.light-theme .bg-gym-850\/60,
-    body.light-theme .bg-gym-850\/80 {
-      background-color: #f8fafc !important;
-      border-color: #cbd5e1 !important;
+    body.light-theme .bg-gym-850\/60, body.light-theme .bg-gym-850\/80, body.light-theme .bg-gym-900\/50 {
+      background-color: #f8fafc !important; border-color: #cbd5e1 !important; color: #111827 !important;
     }
-    body.light-theme, body.light-theme * { color: #0f172a !important; }
     body.light-theme input, body.light-theme select, body.light-theme textarea {
-      background-color: #f1f5f9 !important; border-color: #cbd5e1 !important;
+      background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #111827 !important;
     }
-    body.light-theme h3, body.light-theme label {
-      color: #1f2937 !important; font-weight: 700 !important;
-    }
+    body.light-theme h3, body.light-theme label, body.light-theme span { color: #1f2937 !important; font-weight: 700 !important; }
     body.light-theme .text-slate-400 { color: #64748b !important; }
-    body.light-theme .text-slate-200, body.light-theme .text-white { color: #111827 !important; }
+    body.light-theme .text-white { color: #111827 !important; }
   </style>
 </head>
 
@@ -76,6 +63,7 @@
   
   <datalist id="exercise-list"></datalist>
 
+  <!-- HEADER -->
   <header class="sticky top-0 z-40 bg-gym-900/95 backdrop-blur-md border-b border-gym-800 px-4 py-3 flex items-center justify-between shadow-2xl">
     <div class="flex items-center gap-2.5">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 flex items-center justify-center text-gym-950 font-black text-xl shadow-lg shadow-amber-500/20">
@@ -88,7 +76,6 @@
         <p class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Cloud Connected</p>
       </div>
     </div>
-
     <div class="flex items-center gap-2">
       <div id="userProfilePill" class="hidden items-center gap-2 bg-gym-850 border border-gym-700/80 px-3 py-1.5 rounded-full text-xs font-semibold shadow-inner">
         <span id="navUserAvatar" class="w-6 h-6 rounded-full bg-amber-400 text-gym-950 font-black flex items-center justify-center text-xs">?</span>
@@ -100,6 +87,7 @@
     </div>
   </header>
 
+  <!-- NAVIGATION -->
   <nav class="bg-gym-900 border-b border-gym-800 px-3 flex justify-between gap-1 overflow-x-auto no-scrollbar py-2 text-xs font-bold tracking-wider uppercase">
     <button onclick="window.switchTab('log')" id="tab-log" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-amber-400 bg-gym-800 flex items-center justify-center gap-1.5 border-b-2 border-amber-400 transition">
       <i class="ph-bold ph-notebook text-base"></i> My WODs
@@ -115,33 +103,27 @@
     </button>
   </nav>
 
-  <!-- AUTH / LOADING OVERLAY -->
+  <!-- MODALS -->
   <div id="authOverlay" class="fixed inset-0 z-50 bg-gym-950 flex flex-col items-center justify-center p-6">
     <div class="w-16 h-16 border-4 border-gym-800 border-t-amber-400 rounded-full animate-spin mb-4"></div>
     <h2 class="text-xl font-black text-white uppercase tracking-wider mb-2">Connecting to Cloud...</h2>
     <p class="text-sm text-slate-400">Authenticating session & syncing Firebase data.</p>
   </div>
 
-  <!-- INITIAL PROFILE SETUP -->
   <div id="profileSetupModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-center">
       <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-400 flex items-center justify-center text-gym-950 text-3xl shadow-lg shadow-amber-400/20">
         <i class="ph-bold ph-user"></i>
       </div>
       <h3 class="text-xl font-black uppercase tracking-wider text-white">Create Athlete Profile</h3>
-      <p class="text-xs text-slate-400">This name will be attached to your workouts on the community feed.</p>
-      
       <div class="space-y-3 pt-4">
-        <input type="text" id="setupAthleteName" placeholder="e.g. GregK200, Coach Dan" class="w-full bg-gym-850 border border-gym-700 px-4 py-3 rounded-xl text-sm text-white font-bold text-center focus:border-amber-400 outline-none">
-        <button onclick="window.saveAthleteProfile()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-gym-950 font-black uppercase tracking-wider rounded-xl shadow-lg transition">
-          Enter The Forge &rarr;
-        </button>
+        <input type="text" id="setupAthleteName" placeholder="e.g. GregK200, Coach Dan" class="w-full bg-gym-850 border border-gym-700 px-4 py-3 rounded-xl text-sm text-white font-bold text-center outline-none">
+        <button onclick="window.saveAthleteProfile()" class="w-full py-3 bg-amber-400 text-gym-950 font-black uppercase rounded-xl transition">Enter The Forge &rarr;</button>
       </div>
     </div>
   </div>
 
-  <!-- CUSTOM ALERT MODAL -->
-  <div id="alertModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+  <div id="alertModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-gym-900 border border-amber-500/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
       <h3 class="text-sm font-black uppercase text-amber-400 mb-2 flex items-center gap-2"><i class="ph-bold ph-warning"></i> Attention</h3>
       <p id="alertMessage" class="text-sm text-slate-200 mb-5"></p>
@@ -149,31 +131,29 @@
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRM MODAL -->
-  <div id="confirmModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+  <div id="confirmModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-gym-900 border border-red-500/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
       <h3 class="text-sm font-black uppercase text-red-400 mb-2 flex items-center gap-2"><i class="ph-bold ph-warning"></i> Confirm Action</h3>
       <p id="confirmMessage" class="text-sm text-slate-200 mb-5">Are you sure?</p>
       <div class="flex gap-3">
-         <button onclick="window.closeConfirm(false)" class="flex-1 py-2 bg-gym-800 hover:bg-gym-700 text-white font-bold rounded-lg transition">Cancel</button>
-         <button onclick="window.closeConfirm(true)" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition">Delete</button>
+         <button onclick="window.closeConfirm(false)" class="flex-1 py-2 bg-gym-800 text-white font-bold rounded-lg">Cancel</button>
+         <button onclick="window.closeConfirm(true)" class="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg">Confirm</button>
       </div>
     </div>
   </div>
 
+  <!-- MAIN CONTENT -->
   <main id="mainContent" class="hidden flex-1 max-w-4xl w-full mx-auto p-3 sm:p-5 flex-col gap-6">
 
-    <!-- ==================== SECTION 1: MY WODS ==================== -->
+    <!-- TAB 1: MY WODS (LOG & HISTORY) -->
     <section id="view-log" class="space-y-6">
+      
+      <!-- LOG FORM -->
       <div class="bg-gym-900 border border-gym-800 rounded-2xl p-5 shadow-2xl space-y-5">
-        <div class="flex items-center justify-between border-b border-gym-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center justify-between border-b border-gym-800 pb-3">
           <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-lg">
-              <i class="ph-bold ph-plus"></i>
-            </span>
-            <div>
-              <h2 class="text-base font-black uppercase tracking-wider text-white">Log Session</h2>
-            </div>
+            <span class="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-lg"><i class="ph-bold ph-plus"></i></span>
+            <h2 id="formTitleText" class="text-base font-black uppercase tracking-wider text-white">Log Session</h2>
           </div>
         </div>
 
@@ -189,22 +169,20 @@
             </div>
           </div>
 
+          <!-- Section Toggles -->
           <div class="flex items-center gap-4 bg-gym-850/80 p-3 rounded-xl border border-gym-800 text-xs font-bold flex-wrap">
             <label class="flex items-center gap-1.5 cursor-pointer text-amber-400">
-              <input type="checkbox" id="chkIncludePartA" checked onchange="window.togglePartVisibility('partA')" class="rounded accent-amber-400 w-4 h-4">
-              <span>Strength / Skill</span>
+              <input type="checkbox" id="chkIncludePartA" checked onchange="window.togglePartVisibility('partA')" class="rounded accent-amber-400 w-4 h-4"><span>Strength / Skill</span>
             </label>
             <label class="flex items-center gap-1.5 cursor-pointer text-cyan-400">
-              <input type="checkbox" id="chkIncludePartB" checked onchange="window.togglePartVisibility('partB')" class="rounded accent-cyan-400 w-4 h-4">
-              <span>Metcon</span>
+              <input type="checkbox" id="chkIncludePartB" checked onchange="window.togglePartVisibility('partB')" class="rounded accent-cyan-400 w-4 h-4"><span>Metcon</span>
             </label>
             <label class="flex items-center gap-1.5 cursor-pointer text-orange-400">
-              <input type="checkbox" id="chkIncludePartC" onchange="window.togglePartVisibility('partC')" class="rounded accent-orange-400 w-4 h-4">
-              <span>Accessory</span>
+              <input type="checkbox" id="chkIncludePartC" onchange="window.togglePartVisibility('partC')" class="rounded accent-orange-400 w-4 h-4"><span>Accessory</span>
             </label>
           </div>
 
-          <!-- PART A: STRENGTH -->
+          <!-- PART A -->
           <div id="section-partA" class="bg-gym-850/60 border border-amber-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
             <div class="flex items-center justify-between">
@@ -220,7 +198,7 @@
             <textarea id="partA_notes" rows="1" placeholder="Notes (e.g. Felt heavy, fast bar path)" class="w-full bg-gym-800 border border-gym-700 p-2 rounded-lg text-xs font-mono text-white focus:border-amber-400 outline-none"></textarea>
           </div>
 
-          <!-- PART B: METCON -->
+          <!-- PART B -->
           <div id="section-partB" class="bg-gym-850/60 border border-cyan-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-cyan-400"></div>
             <div class="flex items-center justify-between flex-wrap gap-2">
@@ -234,15 +212,14 @@
                 </label>
               </div>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div class="sm:col-span-1">
                 <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Name</label>
-                <input type="text" id="partB_name" placeholder="e.g. Fran" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
+                <input type="text" id="partB_name" placeholder="e.g. Fran" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Format</label>
-                <select id="partB_type" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
+                <select id="partB_type" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
                   <option value="For Time">For Time</option>
                   <option value="AMRAP">AMRAP</option>
                   <option value="EMOM">EMOM</option>
@@ -253,18 +230,17 @@
                 <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Division</label>
                 <div class="grid grid-cols-2 gap-1">
                   <label class="flex items-center justify-center p-1.5 rounded border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-emerald-400 has-[:checked]:text-emerald-400">
-                    <input type="radio" name="partB_division" value="Rx" checked class="hidden"><span>Rx'd</span>
+                    <input type="radio" name="partB_division" id="partB_rx" value="Rx" checked class="hidden"><span>Rx'd</span>
                   </label>
                   <label class="flex items-center justify-center p-1.5 rounded border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-cyan-400 has-[:checked]:text-cyan-400">
-                    <input type="radio" name="partB_division" value="Scaled" class="hidden"><span>Scaled</span>
+                    <input type="radio" name="partB_division" id="partB_sc" value="Scaled" class="hidden"><span>Scaled</span>
                   </label>
                 </div>
               </div>
             </div>
-
             <div>
               <label class="block text-[11px] font-bold text-cyan-400 uppercase mb-1">Score (Time or Rounds) *</label>
-              <input type="text" id="partB_score" placeholder="e.g. 08:42 or 5 Rds + 12" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-sm font-mono font-bold text-white focus:border-cyan-400 outline-none">
+              <input type="text" id="partB_score" placeholder="e.g. 08:42 or 5 Rds + 12" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-sm font-mono font-bold text-white outline-none">
             </div>
             <div class="space-y-2" id="partB_exercises"></div>
             <button type="button" onclick="window.addExerciseRow('partB')" class="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/30 flex items-center gap-1 transition">
@@ -273,12 +249,10 @@
             <input type="text" id="partB_notes" placeholder="Pacing / Athlete Notes" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
           </div>
 
-          <!-- PART C: ACCESSORY -->
+          <!-- PART C -->
           <div id="section-partC" class="hidden bg-gym-850/60 border border-orange-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-400"></div>
-            <div class="flex justify-between items-center">
-              <h3 class="text-sm font-black uppercase tracking-wider text-orange-500">Part C: Accessory</h3>
-            </div>
+            <h3 class="text-sm font-black uppercase tracking-wider text-orange-500">Part C: Accessory</h3>
             <div class="space-y-2" id="partC_exercises"></div>
             <button type="button" onclick="window.addExerciseRow('partC')" class="text-[11px] font-bold text-orange-500 bg-orange-400/10 px-3 py-1.5 rounded-lg border border-orange-400/30 flex items-center gap-1">
               <i class="ph-bold ph-plus"></i> Add Movement
@@ -286,9 +260,15 @@
             <input type="text" id="partC_result" placeholder="Overall Result (e.g. Done)" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
           </div>
 
-          <button id="btnSaveWorkout" type="submit" class="w-full py-3 rounded-xl text-sm font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-300 text-gym-950 shadow-lg shadow-amber-400/20 transition active:scale-95 flex justify-center items-center gap-2">
-            <i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud
-          </button>
+          <!-- FORM ACTIONS -->
+          <div class="flex gap-3">
+            <button type="button" id="btnCancelEdit" onclick="window.cancelEdit()" class="hidden py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider bg-gym-700 hover:bg-gym-600 text-white shadow-md transition">
+              Cancel
+            </button>
+            <button id="btnSaveWorkout" type="submit" class="flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-300 text-gym-950 shadow-lg shadow-amber-400/20 transition flex justify-center items-center gap-2">
+              <i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud
+            </button>
+          </div>
         </form>
       </div>
 
@@ -297,13 +277,11 @@
         <h3 class="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
           <i class="ph-bold ph-clock-counter-clockwise text-amber-400"></i> My Training History
         </h3>
-        <div id="myHistoryList" class="space-y-4">
-          <!-- Populated by JS -->
-        </div>
+        <div id="myHistoryList" class="space-y-4"></div>
       </div>
     </section>
 
-    <!-- ==================== SECTION 2: TIMER ENGINE ==================== -->
+    <!-- TAB 2: TIMER ENGINE -->
     <section id="view-timer" class="hidden space-y-4">
       <div class="grid grid-cols-4 gap-2 bg-gym-900 p-1.5 rounded-xl border border-gym-800">
         <button onclick="window.setTimerMode('forTime')" id="mode-forTime" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg bg-amber-400 text-gym-950 shadow-md">For Time</button>
@@ -365,35 +343,24 @@
           </button>
         </div>
       </div>
-      
-      <div id="lapContainer" class="hidden bg-gym-900 border border-gym-800 rounded-xl p-4">
-        <div id="lapsList" class="space-y-1.5 max-h-40 overflow-y-auto text-xs font-mono"></div>
-      </div>
     </section>
 
-    <!-- ==================== SECTION 3: BENCHMARKS ==================== -->
+    <!-- TAB 3: BENCHMARKS -->
     <section id="view-benchmarks" class="hidden space-y-4">
       <div class="bg-gradient-to-r from-gym-900 to-gym-850 border border-gym-800 p-5 rounded-2xl">
         <h3 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">Classic Benchmarks</h3>
         <p class="text-xs text-slate-400">Select a benchmark to track your progress.</p>
-        <div id="benchmarkCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <!-- Populated by JS -->
-        </div>
+        <div id="benchmarkCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4"></div>
       </div>
     </section>
 
-    <!-- ==================== SECTION 4: COMMUNITY ==================== -->
+    <!-- TAB 4: COMMUNITY -->
     <section id="view-community" class="hidden space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <i class="ph-bold ph-globe text-cyan-400"></i> Global Community Feed
-        </h2>
-      </div>
+      <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+        <i class="ph-bold ph-globe text-cyan-400"></i> Global Community Feed
+      </h2>
       <p class="text-xs text-slate-400 mb-4">See recent workouts from all authenticated athletes.</p>
-      
-      <div id="communityFeedList" class="space-y-4">
-        <!-- Populated via Firebase -->
-      </div>
+      <div id="communityFeedList" class="space-y-4"></div>
     </section>
 
   </main>
@@ -401,9 +368,12 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, updateDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-    // Your exact Firebase configuration
+    // Global Environment fallback
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'wodforge';
+    
+    // User configuration
     const firebaseConfig = {
       apiKey: "AIzaSyA1F2x068z_eWGy7m0kR_mPEiUl49dl7SA",
       authDomain: "wodforce.firebaseapp.com",
@@ -417,29 +387,22 @@
     let isFirebaseReady = false;
     let allCloudWorkouts = []; 
     let confirmCallback = null;
+    let editingWorkoutId = null; // Track if we are editing an existing log
 
-    // --- Custom Modal Helpers ---
     window.showAlert = (msg) => {
       document.getElementById('alertMessage').textContent = msg;
-      const m = document.getElementById('alertModal');
-      m.classList.remove('hidden'); m.classList.add('flex');
+      document.getElementById('alertModal').classList.remove('hidden'); document.getElementById('alertModal').classList.add('flex');
     };
     window.closeAlert = () => {
-      const m = document.getElementById('alertModal');
-      m.classList.add('hidden'); m.classList.remove('flex');
+      document.getElementById('alertModal').classList.add('hidden'); document.getElementById('alertModal').classList.remove('flex');
     };
-
     window.showConfirm = (msg, callback) => {
-      document.getElementById('confirmMessage').textContent = msg;
-      confirmCallback = callback;
-      const m = document.getElementById('confirmModal');
-      m.classList.remove('hidden'); m.classList.add('flex');
+      document.getElementById('confirmMessage').textContent = msg; confirmCallback = callback;
+      document.getElementById('confirmModal').classList.remove('hidden'); document.getElementById('confirmModal').classList.add('flex');
     };
     window.closeConfirm = (isConfirmed) => {
-      const m = document.getElementById('confirmModal');
-      m.classList.add('hidden'); m.classList.remove('flex');
-      if (confirmCallback) confirmCallback(isConfirmed);
-      confirmCallback = null;
+      document.getElementById('confirmModal').classList.add('hidden'); document.getElementById('confirmModal').classList.remove('flex');
+      if (confirmCallback) confirmCallback(isConfirmed); confirmCallback = null;
     };
 
     async function initFirebase() {
@@ -448,14 +411,8 @@
         auth = getAuth(app);
         db = getFirestore(app);
 
-        // Force Anonymous Sign-in (Removed old token logic)
-        try {
-          await signInAnonymously(auth);
-        } catch (authErr) {
-          console.error("Auth Error:", authErr);
-          window.showAlert("Authentication failed. Ensure 'Anonymous' sign-in is enabled in Firebase Console.");
-          throw authErr; 
-        }
+        try { await signInAnonymously(auth); } 
+        catch (e) { window.showAlert("Auth failed. Please check Firebase settings."); throw e; }
 
         onAuthStateChanged(auth, (user) => {
           if (user) {
@@ -471,8 +428,8 @@
           }
         });
       } catch (err) {
-        console.error("Firebase Init Error:", err);
-        window.showAlert("Database failed to load. Operating in offline demo mode.");
+        console.error("Firebase Error:", err);
+        window.showAlert("Offline mode.");
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('mainContent').classList.add('flex');
@@ -484,9 +441,7 @@
       if (!name) return window.showAlert("Please enter a name.");
       currentUserName = name;
       localStorage.setItem(`athleteName_${currentUserId}`, name);
-      try {
-        await updateProfile(auth.currentUser, { displayName: name });
-      } catch(e) { console.warn("Profile update best effort", e); }
+      try { await updateProfile(auth.currentUser, { displayName: name }); } catch(e) {}
       
       document.getElementById('profileSetupModal').classList.add('hidden');
       document.getElementById('profileSetupModal').classList.remove('flex');
@@ -510,25 +465,21 @@
     function subscribeToCloudData() {
       if (!currentUserId || !db) return;
       
-      // Listen to workouts collection
       const workoutsRef = collection(db, 'workouts');
       
       onSnapshot(workoutsRef, (snapshot) => {
         allCloudWorkouts = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+          id: doc.id, ...doc.data()
         })).sort((a, b) => b.timestamp - a.timestamp);
         
         renderMyHistory();
         renderCommunityFeed();
-      }, (err) => {
-        console.error("Snapshot error:", err);
-      });
+      }, (err) => console.error(err));
     }
 
     window.handleSaveMultiPartWorkout = async (e) => {
       e.preventDefault();
-      if (!isFirebaseReady || !auth.currentUser) return window.showAlert("Not connected to database.");
+      if (!isFirebaseReady || !auth.currentUser) return window.showAlert("Not connected.");
 
       const btn = document.getElementById('btnSaveWorkout');
       btn.disabled = true;
@@ -536,22 +487,29 @@
 
       try {
         const payload = buildWorkoutPayload();
-        if (!payload) { btn.disabled = false; btn.innerHTML = 'Save To Cloud'; return; }
+        if (!payload) { btn.disabled = false; window.cancelEdit(); return; }
         
-        await addDoc(collection(db, 'workouts'), payload);
+        const colRef = collection(db, 'workouts');
         
-        if (payload.partA?.isPR || payload.partB?.isPR) confetti({ particleCount: 80, spread: 70 });
+        if (editingWorkoutId) {
+            // Update existing document
+            await updateDoc(doc(db, 'workouts', editingWorkoutId), payload);
+            if (payload.partA?.isPR || payload.partB?.isPR) confetti({ particleCount: 80, spread: 70 });
+        } else {
+            // Create new document
+            await addDoc(colRef, payload);
+            if (payload.partA?.isPR || payload.partB?.isPR) confetti({ particleCount: 80, spread: 70 });
+        }
         
-        document.getElementById('wodMultiPartForm').reset();
-        document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+        window.cancelEdit(); // Reset form state
         window.switchTab('log');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         console.error(err);
-        window.showAlert("Failed to save workout to cloud.");
+        window.showAlert("Failed to save to cloud.");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud';
       }
-      
-      btn.disabled = false;
-      btn.innerHTML = '<i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud';
     };
 
     function buildWorkoutPayload() {
@@ -572,10 +530,11 @@
         };
       }
       if (hasPartB) {
+        const divEl = document.querySelector('input[name="partB_division"]:checked');
         partB = {
           name: document.getElementById('partB_name').value.trim() || 'Metcon',
           type: document.getElementById('partB_type').value,
-          division: document.querySelector('input[name="partB_division"]:checked').value,
+          division: divEl ? divEl.value : 'Rx',
           score: document.getElementById('partB_score').value.trim(),
           exercises: extractExercises('partB'),
           isPR: document.getElementById('partB_isPR').checked,
@@ -589,16 +548,18 @@
         };
       }
 
-      return {
+      const basePayload = {
         userId: currentUserId,
         athleteName: currentUserName,
         sessionTitle: document.getElementById('logSessionTitle').value.trim(),
         date: document.getElementById('logDate').value || new Date().toISOString().split('T')[0],
-        timestamp: Date.now(),
-        hasPartA, partA,
-        hasPartB, partB,
-        hasPartC, partC
+        hasPartA, partA, hasPartB, partB, hasPartC, partC
       };
+      
+      // Preserve timestamp if editing, otherwise assign new one
+      if (!editingWorkoutId) basePayload.timestamp = Date.now();
+      
+      return basePayload;
     }
 
     function extractExercises(part) {
@@ -615,23 +576,130 @@
       return exercises;
     }
 
+    window.addExerciseRow = (part, prefillData = null) => {
+      const row = document.createElement('div'); row.className = 'flex gap-2 exercise-row';
+      const m = prefillData && prefillData.movement ? prefillData.movement.replace(/"/g, '&quot;') : '';
+      const r = prefillData && prefillData.reps ? prefillData.reps.replace(/"/g, '&quot;') : '';
+      const w = prefillData && prefillData.weight ? prefillData.weight.replace(/"/g, '&quot;') : '';
+      
+      row.innerHTML = `
+        <input type="text" list="exercise-list" value="${m}" placeholder="Movement" class="flex-1 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white outline-none">
+        <input type="text" value="${r}" placeholder="Reps" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center outline-none">
+        <input type="text" value="${w}" placeholder="Wt(lbs)" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center outline-none">
+        <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-400"><i class="ph-bold ph-x"></i></button>
+      `;
+      document.getElementById(`${part}_exercises`).appendChild(row);
+    };
+
+    window.editLog = (id) => {
+      const w = allCloudWorkouts.find(x => x.id === id);
+      if (!w || w.userId !== currentUserId) return;
+      
+      editingWorkoutId = id;
+      window.switchTab('log');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Populate meta
+      document.getElementById('logSessionTitle').value = w.sessionTitle || '';
+      document.getElementById('logDate').value = w.date || '';
+
+      // Clear dynamic lists
+      document.getElementById('partA_exercises').innerHTML = '';
+      document.getElementById('partB_exercises').innerHTML = '';
+      document.getElementById('partC_exercises').innerHTML = '';
+
+      // Set Parts logic
+      document.getElementById('chkIncludePartA').checked = !!w.hasPartA;
+      window.togglePartVisibility('partA');
+      if (w.hasPartA && w.partA) {
+        document.getElementById('partA_isPR').checked = !!w.partA.isPR;
+        document.getElementById('partA_notes').value = w.partA.notes || '';
+        if(w.partA.exercises) w.partA.exercises.forEach(e => window.addExerciseRow('partA', e));
+      } else { window.addExerciseRow('partA'); }
+
+      document.getElementById('chkIncludePartB').checked = !!w.hasPartB;
+      window.togglePartVisibility('partB');
+      if (w.hasPartB && w.partB) {
+        document.getElementById('partB_isPR').checked = !!w.partB.isPR;
+        document.getElementById('partB_name').value = w.partB.name || '';
+        document.getElementById('partB_type').value = w.partB.type || 'For Time';
+        document.getElementById('partB_score').value = w.partB.score || '';
+        document.getElementById('partB_notes').value = w.partB.notes || '';
+        if (w.partB.division === 'Scaled') document.getElementById('partB_sc').checked = true;
+        else document.getElementById('partB_rx').checked = true;
+        if(w.partB.exercises) w.partB.exercises.forEach(e => window.addExerciseRow('partB', e));
+      } else { window.addExerciseRow('partB'); }
+
+      document.getElementById('chkIncludePartC').checked = !!w.hasPartC;
+      window.togglePartVisibility('partC');
+      if (w.hasPartC && w.partC) {
+        document.getElementById('partC_result').value = w.partC.result || '';
+        if(w.partC.exercises) w.partC.exercises.forEach(e => window.addExerciseRow('partC', e));
+      } else { window.addExerciseRow('partC'); }
+
+      // Update Form Action UI
+      document.getElementById('formTitleText').textContent = 'Edit Session';
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+      document.getElementById('btnSaveWorkout').innerHTML = '<i class="ph-bold ph-pencil-simple text-lg"></i> Update Workout';
+    };
+
+    window.cancelEdit = () => {
+      editingWorkoutId = null;
+      document.getElementById('wodMultiPartForm').reset();
+      document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+      
+      // Clear containers & restart blank rows
+      document.getElementById('partA_exercises').innerHTML = '';
+      document.getElementById('partB_exercises').innerHTML = '';
+      document.getElementById('partC_exercises').innerHTML = '';
+      window.addExerciseRow('partA'); window.addExerciseRow('partB'); window.addExerciseRow('partC');
+      
+      // Default toggles
+      document.getElementById('chkIncludePartA').checked = true;
+      document.getElementById('chkIncludePartB').checked = true;
+      document.getElementById('chkIncludePartC').checked = false;
+      window.togglePartVisibility('partA'); window.togglePartVisibility('partB'); window.togglePartVisibility('partC');
+      
+      // Revert UI
+      document.getElementById('formTitleText').textContent = 'Log Session';
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+      document.getElementById('btnSaveWorkout').disabled = false;
+      document.getElementById('btnSaveWorkout').innerHTML = '<i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud';
+    };
+
     window.handleDeleteLog = (id) => {
-      window.showConfirm('Delete this workout permanently from the cloud?', async (isConfirmed) => {
-        if (!isConfirmed) return;
-        if (!auth.currentUser) return;
-        try {
-          await deleteDoc(doc(db, 'workouts', id));
-        } catch (err) {
-          console.error(err);
-          window.showAlert("Failed to delete log.");
-        }
+      window.showConfirm('Delete this workout permanently?', async (isConfirmed) => {
+        if (!isConfirmed || !auth.currentUser) return;
+        try { await deleteDoc(doc(db, 'workouts', id)); } 
+        catch (err) { console.error(err); window.showAlert("Failed to delete log."); }
       });
     };
 
     function generateWorkoutHtml(w, isCommunity = false) {
       const isMine = w.userId === currentUserId;
+      
+      // Safely render Part B movements exactly like Part A
+      let partBMovementsHtml = '';
+      if (w.hasPartB && w.partB && w.partB.exercises && w.partB.exercises.length > 0) {
+          partBMovementsHtml = `<ul class="text-[10px] text-slate-400 font-mono space-y-1 bg-gym-900/50 p-2 rounded mt-2">`;
+          w.partB.exercises.forEach(e => {
+             partBMovementsHtml += `<li><span class="text-cyan-500">${e.reps||'-'}</span> x ${e.movement||'-'} ${e.weight ? `@ ${e.weight}`:''}</li>`;
+          });
+          partBMovementsHtml += `</ul>`;
+      }
+      
+      // Safely render Part C movements
+      let partCMovementsHtml = '';
+      if (w.hasPartC && w.partC && w.partC.exercises && w.partC.exercises.length > 0) {
+          partCMovementsHtml = `<ul class="text-[10px] text-slate-400 font-mono space-y-1 bg-gym-900/50 p-2 rounded mt-2">`;
+          w.partC.exercises.forEach(e => {
+             partCMovementsHtml += `<li><span class="text-orange-500">${e.reps||'-'}</span> x ${e.movement||'-'} ${e.weight ? `@ ${e.weight}`:''}</li>`;
+          });
+          partCMovementsHtml += `</ul>`;
+      }
+
       return `
-        <div class="bg-gym-900 border ${isMine && isCommunity ? 'border-amber-500/30' : 'border-gym-800'} rounded-2xl p-4 space-y-4 shadow-lg">
+        <div class="bg-gym-900 border ${isMine && isCommunity ? 'border-amber-500/30' : 'border-gym-800'} rounded-2xl p-4 space-y-4 shadow-lg transition hover:border-gym-700">
           <div class="flex items-start justify-between border-b border-gym-800 pb-3">
             <div>
               <div class="flex items-center gap-2 flex-wrap">
@@ -642,7 +710,12 @@
               </div>
               <h3 class="text-sm font-black text-white mt-1 uppercase">${w.sessionTitle}</h3>
             </div>
-            ${isMine && !isCommunity ? `<button onclick="window.handleDeleteLog('${w.id}')" class="text-slate-500 hover:text-red-400 p-1"><i class="ph-bold ph-trash"></i></button>` : ''}
+            ${isMine && !isCommunity ? `
+            <div class="flex gap-2">
+                <button onclick="window.editLog('${w.id}')" class="text-slate-500 hover:text-amber-400 transition" title="Edit Workout"><i class="ph-bold ph-pencil-simple text-base"></i></button>
+                <button onclick="window.handleDeleteLog('${w.id}')" class="text-slate-500 hover:text-red-400 transition" title="Delete Workout"><i class="ph-bold ph-trash text-base"></i></button>
+            </div>
+            ` : ''}
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -664,7 +737,16 @@
                 </div>
                 <h4 class="text-sm font-black text-white">${w.partB.name} <span class="font-normal text-slate-400">(${w.partB.type})</span></h4>
                 <div class="bg-gym-900 p-1.5 rounded text-center"><span class="text-sm font-mono font-black text-cyan-400">${w.partB.score}</span></div>
-                <p class="text-[10px] text-slate-500 italic">${w.partB.notes||''}</p>
+                ${partBMovementsHtml}
+                <p class="text-[10px] text-slate-500 italic mt-1">${w.partB.notes||''}</p>
+              </div>
+            ` : ''}
+            
+            ${w.hasPartC && w.partC ? `
+              <div class="bg-gym-850/80 border border-orange-400/20 rounded-xl p-3 space-y-2 md:col-span-2">
+                 <div class="flex items-center justify-between"><span class="text-[9px] font-black uppercase bg-orange-400/20 text-orange-500 px-1.5 rounded">Part C</span></div>
+                 ${partCMovementsHtml}
+                 ${w.partC.result ? `<div class="text-[11px] text-white font-bold mt-1">Result: <span class="text-orange-400">${w.partC.result}</span></div>` : ''}
               </div>
             ` : ''}
           </div>
@@ -736,8 +818,8 @@
           if(s >= total) return finish('EMOM Complete');
           const rem = intv - (s % intv);
           renderClk(rem);
-          if(rem <= 3 && rem > 0 && timer.ms%1000 < 100) sounds.beep(); // Warning beeps
-          if(rem === intv) sounds.horn(); // Minute start horn
+          if(rem <= 3 && rem > 0 && timer.ms%1000 < 100) sounds.beep();
+          if(rem === intv) sounds.horn();
           document.getElementById('timerIntervalStatus').textContent = `ROUND ${Math.floor(s/intv)+1}`;
         }
       }, 100);
@@ -753,9 +835,7 @@
     }
     function finish(msg) { pauseT(); sounds.horn(); confetti({particleCount:100, spread:70, origin:{y:0.6}}); window.showAlert(msg); }
     
-    window.handleTimerLap = () => {
-      if(timer.mode==='amrap') { timer.rds++; document.getElementById('countRoundsDisplay').textContent=timer.rds; sounds.beep(); }
-    };
+    window.handleTimerLap = () => { if(timer.mode==='amrap') { timer.rds++; document.getElementById('countRoundsDisplay').textContent=timer.rds; sounds.beep(); } };
 
     window.switchTab = (tId) => {
       ['log', 'timer', 'benchmarks', 'community'].forEach(t => {
@@ -769,12 +849,6 @@
     window.togglePartVisibility = (part) => {
       const chk = document.getElementById(`chkInclude${part.charAt(0).toUpperCase() + part.slice(1)}`).checked;
       document.getElementById(`section-${part}`).style.display = chk ? 'block' : 'none';
-    };
-
-    window.addExerciseRow = (part) => {
-      const row = document.createElement('div'); row.className = 'flex gap-2 exercise-row';
-      row.innerHTML = `<input type="text" list="exercise-list" placeholder="Movement" class="flex-1 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white outline-none"><input type="text" placeholder="Reps" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center outline-none"><input type="text" placeholder="Wt(lbs)" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center outline-none"><button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-400"><i class="ph-bold ph-x"></i></button>`;
-      document.getElementById(`${part}_exercises`).appendChild(row);
     };
 
     window.toggleTheme = () => {
