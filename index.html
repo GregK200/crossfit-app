@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WODForge | Multi-Part CrossFit WOD Tracker & Gym Timer</title>
+  <title>WODForge | Cloud CrossFit Tracker & Timer</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -16,22 +16,8 @@
         extend: {
           colors: {
             gym: {
-              950: '#08090d',
-              900: '#0f1118',
-              850: '#151822',
-              800: '#1d2230',
-              750: '#242a3b',
-              700: '#2d344a',
-              600: '#424c6b',
-            },
-            volt: {
-              400: '#facc15',
-              500: '#eab308',
-            },
-            neon: {
-              lime: '#22c55e',
-              cyan: '#06b6d4',
-              orange: '#f97316'
+              950: '#08090d', 900: '#0f1118', 850: '#151822', 800: '#1d2230',
+              750: '#242a3b', 700: '#2d344a', 600: '#424c6b',
             }
           },
           fontFamily: {
@@ -49,34 +35,33 @@
       font-weight: 800;
       letter-spacing: -0.05em;
     }
-    button, input, select, textarea {
-      touch-action: manipulation;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f1118;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #2d344a;
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #424c6b;
-    }
+    button, input, select, textarea { touch-action: manipulation; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f1118; }
+    ::-webkit-scrollbar-thumb { background: #2d344a; border-radius: 3px; }
+    
     @keyframes subtlePulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.97; transform: scale(1.006); }
     }
-    .timer-active-pulse {
-      animation: subtlePulse 1.5s ease-in-out infinite;
+    .timer-active-pulse { animation: subtlePulse 1.5s ease-in-out infinite; }
+    
+    body.light-theme { background-color: #f1f5f9 !important; }
+    body.light-theme .bg-gym-950, body.light-theme .bg-gym-900,
+    body.light-theme .bg-gym-850, body.light-theme .bg-gym-800 {
+      background-color: #ffffff !important; border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+    }
+    body.light-theme, body.light-theme * { color: #0f172a !important; }
+    body.light-theme input, body.light-theme select, body.light-theme textarea {
+      background-color: #f8fafc !important; border-color: #cbd5e1 !important;
     }
   </style>
 </head>
 
 <body class="bg-gym-950 text-slate-100 min-h-screen flex flex-col font-sans select-none antialiased">
+  
+  <datalist id="exercise-list"></datalist>
 
   <header class="sticky top-0 z-40 bg-gym-900/95 backdrop-blur-md border-b border-gym-800 px-4 py-3 flex items-center justify-between shadow-2xl">
     <div class="flex items-center gap-2.5">
@@ -87,1922 +72,694 @@
         <h1 class="text-lg font-black tracking-wider uppercase text-white flex items-center gap-1.5 leading-tight">
           WOD<span class="text-amber-400">FORGE</span>
         </h1>
-        <p class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Multi-Part Strength & Metcon Tracker</p>
+        <p class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Cloud Connected</p>
       </div>
     </div>
 
-    <!-- Active Athlete Selector Pill & Utilities -->
     <div class="flex items-center gap-2">
-      <button id="btnSwitchAthlete" onclick="openAthleteModal()" class="flex items-center gap-2 bg-gym-850 hover:bg-gym-800 border border-gym-700/80 px-3 py-1.5 rounded-full transition-all text-xs font-semibold shadow-inner">
-        <span id="currentAthleteAvatar" class="w-6 h-6 rounded-full bg-amber-400 text-gym-950 font-black flex items-center justify-center text-xs">
-          D
-        </span>
-        <span id="currentAthleteName" class="max-w-[110px] truncate text-slate-200">Coach Dan</span>
-        <i class="ph-bold ph-caret-down text-slate-400 text-xs"></i>
-      </button>
-
-      <button onclick="openDataModal()" title="Import / Export Data" class="p-2 text-slate-400 hover:text-white bg-gym-850 hover:bg-gym-800 rounded-lg border border-gym-700 transition">
-        <i class="ph-bold ph-floppy-disk text-lg"></i>
+      <div id="userProfilePill" class="hidden items-center gap-2 bg-gym-850 border border-gym-700/80 px-3 py-1.5 rounded-full text-xs font-semibold shadow-inner">
+        <span id="navUserAvatar" class="w-6 h-6 rounded-full bg-amber-400 text-gym-950 font-black flex items-center justify-center text-xs">?</span>
+        <span id="navUserName" class="max-w-[100px] truncate text-slate-200">Loading...</span>
+      </div>
+      <button onclick="window.toggleTheme()" title="Toggle Font Color (Light/Dark)" class="p-2 text-slate-400 hover:text-white bg-gym-850 hover:bg-gym-800 rounded-lg border border-gym-700 transition">
+        <i id="themeIcon" class="ph-bold ph-sun text-lg"></i>
       </button>
     </div>
   </header>
 
   <nav class="bg-gym-900 border-b border-gym-800 px-3 flex justify-between gap-1 overflow-x-auto no-scrollbar py-2 text-xs font-bold tracking-wider uppercase">
-    <button onclick="switchTab('log')" id="tab-log" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-amber-400 bg-gym-800 flex items-center justify-center gap-1.5 border-b-2 border-amber-400 transition">
-      <i class="ph-bold ph-notebook text-base"></i> Log Multi-Part WOD
+    <button onclick="window.switchTab('log')" id="tab-log" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-amber-400 bg-gym-800 flex items-center justify-center gap-1.5 border-b-2 border-amber-400 transition">
+      <i class="ph-bold ph-notebook text-base"></i> My WODs
     </button>
-    <button onclick="switchTab('timer')" id="tab-timer" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
-      <i class="ph-fill ph-timer text-base"></i> Metcon Timer
+    <button onclick="window.switchTab('timer')" id="tab-timer" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
+      <i class="ph-fill ph-timer text-base"></i> Timer
     </button>
-    <button onclick="switchTab('benchmarks')" id="tab-benchmarks" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
-      <i class="ph-bold ph-trophy text-base"></i> PRs & Benchmarks
+    <button onclick="window.switchTab('benchmarks')" id="tab-benchmarks" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
+      <i class="ph-bold ph-trophy text-base"></i> Benchmarks
     </button>
-    <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
-      <i class="ph-bold ph-users-three text-base"></i> Squad Feed
+    <button onclick="window.switchTab('community')" id="tab-community" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition">
+      <i class="ph-bold ph-globe text-base"></i> Community
     </button>
   </nav>
 
-  <main class="flex-1 max-w-4xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-6">
+  <!-- AUTH / LOADING OVERLAY -->
+  <div id="authOverlay" class="fixed inset-0 z-50 bg-gym-950 flex flex-col items-center justify-center p-6">
+    <div class="w-16 h-16 border-4 border-gym-800 border-t-amber-400 rounded-full animate-spin mb-4"></div>
+    <h2 class="text-xl font-black text-white uppercase tracking-wider mb-2">Connecting to Cloud...</h2>
+    <p class="text-sm text-slate-400">Authenticating session & syncing Firebase data.</p>
+  </div>
 
-    <!-- ==================== SECTION 1: MULTI-PART WOD LOGGER ==================== -->
-    <section id="view-log" class="space-y-6">
+  <!-- INITIAL PROFILE SETUP -->
+  <div id="profileSetupModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-center">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-400 flex items-center justify-center text-gym-950 text-3xl shadow-lg shadow-amber-400/20">
+        <i class="ph-bold ph-user"></i>
+      </div>
+      <h3 class="text-xl font-black uppercase tracking-wider text-white">Create Athlete Profile</h3>
+      <p class="text-xs text-slate-400">This name will be attached to your workouts on the community feed.</p>
       
-      <!-- Logger Card -->
+      <div class="space-y-3 pt-4">
+        <input type="text" id="setupAthleteName" placeholder="e.g. GregK200, Coach Dan" class="w-full bg-gym-850 border border-gym-700 px-4 py-3 rounded-xl text-sm text-white font-bold text-center focus:border-amber-400 outline-none">
+        <button onclick="window.saveAthleteProfile()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-gym-950 font-black uppercase tracking-wider rounded-xl shadow-lg transition">
+          Enter The Forge &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM ALERT MODAL -->
+  <div id="alertModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 transition-opacity">
+    <div class="bg-gym-900 border border-amber-500/50 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+      <h3 class="text-sm font-black uppercase text-amber-400 mb-2 flex items-center gap-2"><i class="ph-bold ph-warning"></i> Attention</h3>
+      <p id="alertMessage" class="text-sm text-slate-200 mb-5"></p>
+      <button onclick="window.closeAlert()" class="w-full py-2 bg-gym-800 hover:bg-gym-700 text-white font-bold rounded-lg transition">OK</button>
+    </div>
+  </div>
+
+  <main id="mainContent" class="hidden flex-1 max-w-4xl w-full mx-auto p-3 sm:p-5 flex-col gap-6">
+
+    <!-- ==================== SECTION 1: MY WODS ==================== -->
+    <section id="view-log" class="space-y-6">
       <div class="bg-gym-900 border border-gym-800 rounded-2xl p-5 shadow-2xl space-y-5">
         <div class="flex items-center justify-between border-b border-gym-800 pb-3 flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <span class="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center text-lg">
-              <i class="ph-bold ph-layers"></i>
+              <i class="ph-bold ph-plus"></i>
             </span>
             <div>
-              <h2 class="text-base font-black uppercase tracking-wider text-white">Record Daily Session</h2>
-              <p class="text-[11px] text-slate-400">Combine Strength/Skill and Conditioning Metcons into one workout</p>
+              <h2 class="text-base font-black uppercase tracking-wider text-white">Log Session</h2>
             </div>
-          </div>
-
-          <!-- Quick Template Selector -->
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="openMultiPartTemplatesModal()" class="text-xs bg-amber-400/10 text-amber-400 border border-amber-400/30 px-3 py-1.5 rounded-lg hover:bg-amber-400/20 font-bold flex items-center gap-1.5 transition">
-              <i class="ph-bold ph-sparkle"></i> Load Class Template
-            </button>
-            <button type="button" onclick="openBenchmarkSelectorModal()" class="text-xs bg-gym-800 text-slate-300 border border-gym-700 px-3 py-1.5 rounded-lg hover:bg-gym-700 font-bold flex items-center gap-1.5 transition">
-              <i class="ph-bold ph-lightning"></i> Hero/Girl Preset
-            </button>
           </div>
         </div>
 
-        <form id="wodMultiPartForm" onsubmit="handleSaveMultiPartWorkout(event)" class="space-y-5">
-          
-          <!-- General Session Header (Title, Athlete, Date) -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <form id="wodMultiPartForm" onsubmit="window.handleSaveMultiPartWorkout(event)" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Session Title *</label>
-              <input type="text" id="logSessionTitle" placeholder="e.g. Daily Class: Back Squats + Metcon" required class="w-full bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-400 outline-none">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Athlete</label>
-              <select id="logAthleteSelect" class="w-full bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-400 outline-none">
-                <!-- Dynamically populated -->
-              </select>
+              <input type="text" id="logSessionTitle" placeholder="e.g. Friday Box Class" required class="w-full bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-400 outline-none">
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Date</label>
-              <input type="date" id="logDate" class="w-full bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-400 outline-none">
+              <input type="date" id="logDate" required class="w-full bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-sm text-white focus:border-amber-400 outline-none">
             </div>
           </div>
 
-          <!-- Section Toggles Checkboxes -->
-          <div class="flex items-center gap-4 bg-gym-850/80 p-3 rounded-xl border border-gym-800 text-xs font-bold">
-            <span class="text-slate-400 uppercase tracking-wider text-[11px]">Include Sections:</span>
+          <div class="flex items-center gap-4 bg-gym-850/80 p-3 rounded-xl border border-gym-800 text-xs font-bold flex-wrap">
             <label class="flex items-center gap-1.5 cursor-pointer text-amber-400">
-              <input type="checkbox" id="chkIncludePartA" checked onchange="togglePartVisibility('partA')" class="rounded accent-amber-400 w-4 h-4">
-              <span>Part A: Strength / Skill</span>
+              <input type="checkbox" id="chkIncludePartA" checked onchange="window.togglePartVisibility('partA')" class="rounded accent-amber-400 w-4 h-4">
+              <span>Strength / Skill</span>
             </label>
             <label class="flex items-center gap-1.5 cursor-pointer text-cyan-400">
-              <input type="checkbox" id="chkIncludePartB" checked onchange="togglePartVisibility('partB')" class="rounded accent-cyan-400 w-4 h-4">
-              <span>Part B: Metcon / Conditioning</span>
+              <input type="checkbox" id="chkIncludePartB" checked onchange="window.togglePartVisibility('partB')" class="rounded accent-cyan-400 w-4 h-4">
+              <span>Metcon</span>
             </label>
             <label class="flex items-center gap-1.5 cursor-pointer text-orange-400">
-              <input type="checkbox" id="chkIncludePartC" onchange="togglePartVisibility('partC')" class="rounded accent-orange-400 w-4 h-4">
-              <span>Part C: Accessory / Core</span>
+              <input type="checkbox" id="chkIncludePartC" onchange="window.togglePartVisibility('partC')" class="rounded accent-orange-400 w-4 h-4">
+              <span>Accessory</span>
             </label>
           </div>
 
-          <!-- PART A: STRENGTH & SKILL BLOCK -->
+          <!-- PART A: STRENGTH -->
           <div id="section-partA" class="bg-gym-850/60 border border-amber-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
-            
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-400 text-gym-950">Part A</span>
-                <h3 class="text-sm font-black uppercase tracking-wider text-amber-300">Strength & Heavy Work</h3>
-              </div>
+              <h3 class="text-sm font-black uppercase tracking-wider text-amber-300">Part A: Strength</h3>
               <label class="flex items-center gap-1.5 text-xs text-amber-400 font-bold cursor-pointer">
-                <input type="checkbox" id="partA_isPR" class="w-4 h-4 rounded accent-amber-400">
-                <span>Strength PR 🏆</span>
+                <input type="checkbox" id="partA_isPR" class="w-4 h-4 rounded accent-amber-400"><span>Strength PR 🏆</span>
               </label>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Movement / Exercise</label>
-                <input type="text" id="partA_movement" placeholder="e.g. Back Squat, Snatch, Push Press" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-amber-400 outline-none">
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Set & Rep Scheme</label>
-                <input type="text" id="partA_scheme" placeholder="e.g. 5 x 3 @ 80%, or 3-3-2-2-1-1" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-amber-400 outline-none">
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-amber-400 uppercase mb-1">Top Load / Final Weight *</label>
-                <input type="text" id="partA_topWeight" placeholder="e.g. 335 lbs or 150 kg" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-white focus:border-amber-400 outline-none">
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Strength Breakdown & Set Notes</label>
-              <textarea id="partA_notes" rows="2" placeholder="e.g. Set 1: 275, Set 2: 295, Set 3: 315, Set 4: 335 (clean depth), Set 5: 335" class="w-full bg-gym-800 border border-gym-700 p-2 rounded-lg text-xs font-mono text-white focus:border-amber-400 outline-none"></textarea>
-            </div>
+            <div class="space-y-2" id="partA_exercises"></div>
+            <button type="button" onclick="window.addExerciseRow('partA')" class="text-[11px] font-bold text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 flex items-center gap-1 transition">
+              <i class="ph-bold ph-plus"></i> Add Movement
+            </button>
+            <textarea id="partA_notes" rows="1" placeholder="Notes (e.g. Felt heavy, fast bar path)" class="w-full bg-gym-800 border border-gym-700 p-2 rounded-lg text-xs font-mono text-white focus:border-amber-400 outline-none"></textarea>
           </div>
 
-          <!-- PART B: METCON / CONDITIONING BLOCK -->
+          <!-- PART B: METCON -->
           <div id="section-partB" class="bg-gym-850/60 border border-cyan-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-cyan-400"></div>
-
             <div class="flex items-center justify-between flex-wrap gap-2">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-cyan-400 text-gym-950">Part B</span>
-                <h3 class="text-sm font-black uppercase tracking-wider text-cyan-300">Metcon / Conditioning</h3>
-              </div>
-              
+              <h3 class="text-sm font-black uppercase tracking-wider text-cyan-300">Part B: Metcon</h3>
               <div class="flex items-center gap-3">
-                <button type="button" onclick="sendToTimerWithHUD()" class="text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 px-2.5 py-1 rounded-lg hover:bg-cyan-500/30 font-bold flex items-center gap-1 transition">
-                  <i class="ph-bold ph-play"></i> Run In Timer
+                <button type="button" onclick="window.sendToTimerWithHUD()" class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 px-2.5 py-1 rounded-lg hover:bg-cyan-500/30 font-bold flex items-center gap-1">
+                  <i class="ph-bold ph-play"></i> To Timer
                 </button>
                 <label class="flex items-center gap-1.5 text-xs text-cyan-400 font-bold cursor-pointer">
-                  <input type="checkbox" id="partB_isPR" class="w-4 h-4 rounded accent-cyan-400">
-                  <span>Metcon PR 🏆</span>
+                  <input type="checkbox" id="partB_isPR" class="w-4 h-4 rounded accent-cyan-400"><span>Metcon PR 🏆</span>
                 </label>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div class="sm:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Metcon Name / Tag</label>
-                <input type="text" id="partB_name" placeholder="e.g. Fran, 12-min AMRAP, Triple 3" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-1">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Name</label>
+                <input type="text" id="partB_name" placeholder="e.g. Fran" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
               </div>
               <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Workout Format</label>
-                <select id="partB_type" onchange="adaptMetconScorePrompt()" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
-                  <option value="For Time">For Time (Stopwatch)</option>
-                  <option value="AMRAP">AMRAP (Rounds + Reps)</option>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Format</label>
+                <select id="partB_type" onchange="window.adaptMetconScorePrompt()" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
+                  <option value="For Time">For Time</option>
+                  <option value="AMRAP">AMRAP</option>
                   <option value="EMOM">EMOM</option>
                   <option value="Tabata">Tabata</option>
-                  <option value="Chipper/Other">Chipper / Other</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Division</label>
                 <div class="grid grid-cols-2 gap-1">
-                  <label class="flex items-center justify-center p-1.5 rounded-lg border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-emerald-400 has-[:checked]:text-emerald-400">
-                    <input type="radio" name="partB_division" value="Rx" checked class="hidden">
-                    <span>Rx'd</span>
+                  <label class="flex items-center justify-center p-1.5 rounded border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-emerald-400 has-[:checked]:text-emerald-400">
+                    <input type="radio" name="partB_division" value="Rx" checked class="hidden"><span>Rx'd</span>
                   </label>
-                  <label class="flex items-center justify-center p-1.5 rounded-lg border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-cyan-400 has-[:checked]:text-cyan-400">
-                    <input type="radio" name="partB_division" value="Scaled" class="hidden">
-                    <span>Scaled</span>
+                  <label class="flex items-center justify-center p-1.5 rounded border border-gym-700 bg-gym-800 cursor-pointer text-xs font-bold has-[:checked]:border-cyan-400 has-[:checked]:text-cyan-400">
+                    <input type="radio" name="partB_division" value="Scaled" class="hidden"><span>Scaled</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <!-- Score & Metcon Movements -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label id="partB_scoreLabel" class="block text-[11px] font-bold text-cyan-300 uppercase mb-1">Score (Time or Rounds) *</label>
-                <input type="text" id="partB_score" placeholder="08:42" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-sm font-mono font-bold text-white focus:border-cyan-400 outline-none">
-              </div>
-              <div class="sm:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Metcon Movements & Scheme</label>
-                <input type="text" id="partB_scheme" placeholder="e.g. 21-15-9: Thrusters (95 lbs) & Pull-ups" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs font-mono text-white focus:border-cyan-400 outline-none">
-              </div>
-            </div>
-
             <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Metcon Pacing / Athlete Notes</label>
-              <input type="text" id="partB_notes" placeholder="Paced round 1 smoothly; unbroken bar work on round 2..." class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-cyan-400 outline-none">
+              <label id="partB_scoreLabel" class="block text-[11px] font-bold text-cyan-300 uppercase mb-1">Score (Time or Rounds) *</label>
+              <input type="text" id="partB_score" placeholder="08:42" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-sm font-mono font-bold text-white focus:border-cyan-400 outline-none">
             </div>
+            <div class="space-y-2" id="partB_exercises"></div>
+            <button type="button" onclick="window.addExerciseRow('partB')" class="text-[11px] font-bold text-cyan-400 bg-cyan-400/10 px-3 py-1.5 rounded-lg border border-cyan-400/30 flex items-center gap-1 transition">
+              <i class="ph-bold ph-plus"></i> Add Movement
+            </button>
+            <input type="text" id="partB_notes" placeholder="Pacing / Athlete Notes" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
           </div>
 
-          <!-- PART C: ACCESSORY / CORE BLOCK (OPTIONAL) -->
+          <!-- PART C: ACCESSORY -->
           <div id="section-partC" class="hidden bg-gym-850/60 border border-orange-500/30 rounded-xl p-4 space-y-3 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-400"></div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-orange-400 text-gym-950">Part C</span>
-                <h3 class="text-sm font-black uppercase tracking-wider text-orange-300">Accessory / Core / Finisher</h3>
-              </div>
-              <button type="button" onclick="document.getElementById('chkIncludePartC').checked = false; togglePartVisibility('partC');" class="text-xs text-slate-400 hover:text-red-400">
-                <i class="ph-bold ph-x"></i> Remove Part C
-              </button>
+            <div class="flex justify-between items-center">
+              <h3 class="text-sm font-black uppercase tracking-wider text-orange-300">Part C: Accessory</h3>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Accessory Work</label>
-                <input type="text" id="partC_title" placeholder="e.g. 3 Rounds: 15 GHD Sit-ups, 50ft D-Ball Carry" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-orange-400 outline-none">
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Result / Weights Used</label>
-                <input type="text" id="partC_result" placeholder="e.g. Completed with 100 lb sandbag" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white focus:border-orange-400 outline-none">
-              </div>
-            </div>
+            <div class="space-y-2" id="partC_exercises"></div>
+            <button type="button" onclick="window.addExerciseRow('partC')" class="text-[11px] font-bold text-orange-400 bg-orange-400/10 px-3 py-1.5 rounded-lg border border-orange-400/30 flex items-center gap-1">
+              <i class="ph-bold ph-plus"></i> Add Movement
+            </button>
+            <input type="text" id="partC_result" placeholder="Overall Result (e.g. Done)" class="w-full bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-xs text-white outline-none">
           </div>
 
-          <!-- Form submission buttons -->
-          <div class="flex items-center justify-between pt-2 border-t border-gym-800">
-            <button type="reset" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white bg-gym-800 transition">
-              Reset Fields
-            </button>
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-300 text-gym-950 shadow-lg shadow-amber-400/20 transition active:scale-95">
-              Save Multi-Part Session
-            </button>
-          </div>
+          <button id="btnSaveWorkout" type="submit" class="w-full py-3 rounded-xl text-sm font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-300 text-gym-950 shadow-lg shadow-amber-400/20 transition active:scale-95 flex justify-center items-center gap-2">
+            <i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud
+          </button>
         </form>
       </div>
 
-      <!-- WORKOUT HISTORY FEED -->
+      <!-- MY HISTORY FEED -->
       <div class="space-y-4">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <h3 class="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <i class="ph-bold ph-clock-counter-clockwise text-amber-400"></i> Completed Box Sessions
-          </h3>
-          <div class="flex items-center gap-2">
-            <select id="historyFilterAthlete" onchange="renderHistoryLogs()" class="bg-gym-900 border border-gym-800 text-xs px-2.5 py-1.5 rounded-lg text-slate-300 outline-none font-bold">
-              <option value="ALL">All Athletes</option>
-              <!-- Populated via JS -->
-            </select>
-          </div>
-        </div>
-
-        <div id="workoutHistoryList" class="space-y-4">
-          <!-- Dynamically populated multi-part workout cards -->
+        <h3 class="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <i class="ph-bold ph-clock-counter-clockwise text-amber-400"></i> My Training History
+        </h3>
+        <div id="myHistoryList" class="space-y-4">
+          <!-- Populated by JS -->
         </div>
       </div>
     </section>
 
-    <!-- ==================== SECTION 2: TIMER ENGINE WITH STRENGTH HUD ==================== -->
+    <!-- ==================== SECTION 2: TIMER ENGINE ==================== -->
     <section id="view-timer" class="hidden space-y-4">
-      
-      <!-- STRENGTH OVERVIEW HUD (Shows Part A details if logged or queued) -->
-      <div id="timerStrengthHUD" class="bg-gym-900 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between flex-wrap gap-2 text-xs">
-        <div class="flex items-center gap-2.5">
-          <span class="w-7 h-7 rounded-lg bg-amber-400 text-gym-950 font-black flex items-center justify-center text-xs">
-            <i class="ph-bold ph-barbell"></i>
-          </span>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-mono uppercase font-black text-amber-400">Part A Completed:</span>
-              <span id="hudPartATitle" class="text-white font-bold">5x3 Back Squats</span>
-            </div>
-            <p id="hudPartALoad" class="text-slate-400 text-[11px] font-mono">Top Load: 335 lbs • Scheme: 5x3 @ 80%</p>
-          </div>
-        </div>
-        <button onclick="switchTab('log')" class="text-[11px] text-amber-400 hover:underline font-bold">
-          Edit Strength Log &rarr;
-        </button>
-      </div>
-
-      <!-- Timer Type Mode Selector -->
       <div class="grid grid-cols-4 gap-2 bg-gym-900 p-1.5 rounded-xl border border-gym-800">
-        <button onclick="setTimerMode('forTime')" id="mode-forTime" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg bg-amber-400 text-gym-950 shadow-md">
-          For Time
-        </button>
-        <button onclick="setTimerMode('amrap')" id="mode-amrap" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">
-          AMRAP
-        </button>
-        <button onclick="setTimerMode('emom')" id="mode-emom" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">
-          EMOM
-        </button>
-        <button onclick="setTimerMode('tabata')" id="mode-tabata" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">
-          Tabata
-        </button>
+        <button onclick="window.setTimerMode('forTime')" id="mode-forTime" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg bg-amber-400 text-gym-950 shadow-md">For Time</button>
+        <button onclick="window.setTimerMode('amrap')" id="mode-amrap" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">AMRAP</button>
+        <button onclick="window.setTimerMode('emom')" id="mode-emom" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">EMOM</button>
+        <button onclick="window.setTimerMode('tabata')" id="mode-tabata" class="timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white">Tabata</button>
       </div>
 
-      <!-- Timer Configuration Drawer -->
       <div id="timerConfigCard" class="bg-gym-900 border border-gym-800 p-4 rounded-xl text-xs space-y-3">
-        <!-- For Time Config -->
-        <div id="cfg-forTime" class="flex items-center justify-between flex-wrap gap-2">
-          <span class="text-slate-400 font-semibold uppercase">Time Cap (optional):</span>
-          <div class="flex items-center gap-2">
-            <input type="number" id="forTimeCap" placeholder="No Cap" min="1" max="180" class="w-24 bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-white font-mono text-center focus:border-amber-400 outline-none">
-            <span class="text-slate-400">mins</span>
-          </div>
+        <!-- For Time -->
+        <div id="cfg-forTime" class="flex items-center justify-between gap-2">
+          <span class="text-slate-400 font-semibold uppercase">Time Cap:</span>
+          <input type="number" id="forTimeCap" placeholder="No Cap (Mins)" class="w-32 bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-white font-mono text-center">
         </div>
-
-        <!-- AMRAP Config -->
-        <div id="cfg-amrap" class="hidden flex items-center justify-between flex-wrap gap-2">
+        <!-- AMRAP -->
+        <div id="cfg-amrap" class="hidden flex items-center justify-between gap-2">
           <span class="text-slate-400 font-semibold uppercase">Duration:</span>
-          <div class="flex items-center gap-2">
-            <input type="number" id="amrapMinutes" value="20" min="1" max="120" class="w-24 bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-white font-mono text-center focus:border-amber-400 outline-none">
-            <span class="text-slate-400">minutes</span>
-          </div>
+          <input type="number" id="amrapMinutes" value="20" class="w-32 bg-gym-800 border border-gym-700 px-3 py-1.5 rounded-lg text-white font-mono text-center">
         </div>
-
-        <!-- EMOM Config -->
-        <div id="cfg-emom" class="hidden flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-2">
-            <span class="text-slate-400 font-semibold uppercase">Interval: Every</span>
-            <input type="number" id="emomInterval" value="1" min="1" max="10" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-white font-mono text-center outline-none">
-            <span class="text-slate-400">min(s)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-slate-400 font-semibold uppercase">Total:</span>
-            <input type="number" id="emomTotalMinutes" value="10" min="1" max="60" class="w-20 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-white font-mono text-center outline-none">
-            <span class="text-slate-400">mins</span>
-          </div>
+        <!-- EMOM -->
+        <div id="cfg-emom" class="hidden flex items-center justify-between gap-2">
+          <span class="text-slate-400 font-semibold uppercase">Every (Min)</span>
+          <input type="number" id="emomInterval" value="1" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-white font-mono text-center">
+          <span class="text-slate-400 font-semibold uppercase">Total (Mins)</span>
+          <input type="number" id="emomTotalMinutes" value="10" class="w-20 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-white font-mono text-center">
         </div>
-
-        <!-- Tabata Config -->
+        <!-- Tabata -->
         <div id="cfg-tabata" class="hidden grid grid-cols-3 gap-2">
-          <div>
-            <label class="text-slate-400 uppercase text-[10px] block mb-1">Work (sec)</label>
-            <input type="number" id="tabataWork" value="20" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono">
-          </div>
-          <div>
-            <label class="text-slate-400 uppercase text-[10px] block mb-1">Rest (sec)</label>
-            <input type="number" id="tabataRest" value="10" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono">
-          </div>
-          <div>
-            <label class="text-slate-400 uppercase text-[10px] block mb-1">Rounds</label>
-            <input type="number" id="tabataRounds" value="8" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono">
-          </div>
+          <div><label class="text-slate-400 uppercase text-[10px] block mb-1">Work (s)</label><input type="number" id="tabataWork" value="20" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono"></div>
+          <div><label class="text-slate-400 uppercase text-[10px] block mb-1">Rest (s)</label><input type="number" id="tabataRest" value="10" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono"></div>
+          <div><label class="text-slate-400 uppercase text-[10px] block mb-1">Rounds</label><input type="number" id="tabataRounds" value="8" class="w-full bg-gym-800 border border-gym-700 p-1.5 rounded text-center text-white font-mono"></div>
         </div>
 
-        <div class="pt-2 border-t border-gym-800 flex justify-between items-center text-slate-400 text-[11px]">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="chkCountdown" checked class="rounded accent-amber-400">
-            <span>10-sec Countdown Beeps</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="chkAudioSound" checked class="rounded accent-amber-400">
-            <span>Audio Sound Effects</span>
-          </label>
+        <div class="pt-2 border-t border-gym-800 flex gap-4 text-slate-400 text-[11px]">
+          <label class="flex items-center gap-1.5"><input type="checkbox" id="chkCountdown" checked class="rounded accent-amber-400"><span>10s Countdown</span></label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" id="chkAudioSound" checked class="rounded accent-amber-400"><span>Sound Enabled</span></label>
         </div>
       </div>
 
-      <!-- Main Timer Board -->
-      <div id="timerDisplayCard" class="relative bg-gym-900 border-2 border-gym-800 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center shadow-2xl transition-all">
+      <div id="timerDisplayCard" class="relative bg-gym-900 border-2 border-gym-800 rounded-2xl p-6 flex flex-col items-center justify-center shadow-2xl">
         <div class="flex items-center justify-between w-full mb-3 text-xs tracking-widest font-mono font-bold">
-          <div id="timerModeLabel" class="uppercase text-amber-400 bg-amber-400/10 px-3 py-1 rounded-md border border-amber-400/20">
-            FOR TIME
-          </div>
-          <div id="timerIntervalStatus" class="text-slate-400 font-semibold text-sm">
-            ROUND 1
-          </div>
+          <div id="timerModeLabel" class="uppercase text-amber-400 bg-amber-400/10 px-3 py-1 rounded-md border border-amber-400/20">FOR TIME</div>
+          <div id="timerIntervalStatus" class="text-slate-400">ROUND 1</div>
         </div>
-
-        <div id="timerMainClock" class="font-digital text-7xl sm:text-9xl text-white font-black tracking-tight drop-shadow-[0_0_20px_rgba(250,204,21,0.25)] select-none">
-          00:00
-        </div>
-
-        <div class="flex items-center gap-4 mt-2">
-          <div id="timerSubDisplay" class="font-mono text-sm sm:text-base text-slate-400 tracking-wider">
-            LAP: 00:00
-          </div>
-          <div id="amrapRepsPill" class="hidden bg-gym-800 border border-gym-700 px-3 py-1 rounded-full text-xs font-mono text-amber-400 flex items-center gap-2">
-            <span>ROUNDS: <b id="countRoundsDisplay" class="text-white text-sm">0</b></span>
-          </div>
-        </div>
-
-        <!-- Timer Controls -->
-        <div class="grid grid-cols-3 gap-3 w-full mt-8 max-w-md">
-          <button id="btnTimerReset" onclick="resetTimer()" class="py-4 px-4 bg-gym-800 hover:bg-gym-700 active:scale-95 text-slate-200 font-bold uppercase rounded-xl border border-gym-700 flex flex-col items-center justify-center gap-1 shadow-md transition">
-            <i class="ph-bold ph-arrow-counter-clockwise text-xl"></i>
-            <span class="text-[11px] tracking-wider">RESET</span>
-          </button>
-
-          <button id="btnTimerPrimary" onclick="toggleTimer()" class="py-4 px-4 bg-amber-400 hover:bg-amber-300 active:scale-95 text-gym-950 font-black uppercase rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-amber-400/25 transition">
-            <i id="btnTimerPrimaryIcon" class="ph-fill ph-play text-2xl"></i>
-            <span id="btnTimerPrimaryLabel" class="text-xs tracking-wider">START</span>
-          </button>
-
-          <button id="btnTimerLap" onclick="handleTimerLap()" class="py-4 px-4 bg-gym-800 hover:bg-gym-700 active:scale-95 text-slate-200 font-bold uppercase rounded-xl border border-gym-700 flex flex-col items-center justify-center gap-1 shadow-md transition">
-            <i id="btnTimerLapIcon" class="ph-bold ph-flag text-xl"></i>
-            <span id="btnTimerLapLabel" class="text-[11px] tracking-wider">SPLIT</span>
-          </button>
-        </div>
-
-        <!-- Metcon Complete Banner (Prefills directly into Part B) -->
-        <div id="timerFinishedBanner" class="hidden mt-6 w-full p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div>
-            <h4 class="font-black text-cyan-400 text-sm uppercase">Part B Conditioning Complete!</h4>
-            <p id="timerFinishedSummary" class="text-xs text-slate-300">Time: 11:24 • Ready to plug into workout log?</p>
-          </div>
-          <button onclick="prefillPartBFromTimer()" class="w-full sm:w-auto px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-gym-950 font-black text-xs uppercase tracking-wider rounded-lg shadow-lg transition">
-            Insert Into Part B &rarr;
-          </button>
-        </div>
-      </div>
-
-      <!-- Lap splits display list -->
-      <div id="lapContainer" class="hidden bg-gym-900 border border-gym-800 rounded-xl p-4">
-        <h4 class="text-xs font-mono uppercase text-slate-400 font-bold mb-2 flex items-center justify-between">
-          <span>Split Times / Rounds</span>
-          <button onclick="clearLaps()" class="text-[10px] text-red-400 hover:underline">Clear</button>
-        </h4>
-        <div id="lapsList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1 text-xs font-mono"></div>
-      </div>
-    </section>
-
-    <!-- ==================== SECTION 3: BENCHMARKS & PRS ==================== -->
-    <section id="view-benchmarks" class="hidden space-y-6">
-      <!-- Athlete Profile Header Card -->
-      <div class="bg-gradient-to-r from-gym-900 to-gym-850 border border-gym-800 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div id="benchProfileAvatar" class="w-16 h-16 rounded-2xl bg-amber-400 text-gym-950 font-black text-2xl flex items-center justify-center shadow-lg shadow-amber-400/20">
-            D
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 id="benchProfileName" class="text-xl font-black text-white">Coach Dan</h2>
-              <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber-400/20 text-amber-400 font-bold border border-amber-400/30">Active Athlete</span>
-            </div>
-            <p id="benchProfileStats" class="text-xs text-slate-400 mt-0.5 font-mono">0 Logged Sessions • 0 Strength PRs • 0 Metcon PRs</p>
-          </div>
-        </div>
-        <button onclick="openBenchmarkSelectorModal()" class="w-full sm:w-auto px-4 py-2.5 bg-gym-800 hover:bg-gym-700 text-amber-400 border border-amber-400/40 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2">
-          <i class="ph-bold ph-plus"></i> Log Benchmark
-        </button>
-      </div>
-
-      <!-- Quick 1RM Strength Matrix -->
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <i class="ph-bold ph-barbell text-amber-400 text-base"></i> Part A Strength Maxes (1-Rep PRs)
-          </h3>
-          <button onclick="promptQuickStrengthPR()" class="text-xs text-amber-400 hover:underline font-bold">+ Custom Lift PR</button>
-        </div>
+        <div id="timerMainClock" class="font-digital text-7xl sm:text-9xl text-white font-black tracking-tight drop-shadow-[0_0_20px_rgba(250,204,21,0.25)] select-none">00:00</div>
         
-        <div id="strengthPrGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          <!-- Populated via JS -->
+        <div class="flex gap-4 mt-2 h-6">
+          <div id="timerSubDisplay" class="font-mono text-sm text-slate-400">LAP: 00:00</div>
+          <div id="amrapRepsPill" class="hidden bg-gym-800 px-3 rounded-full text-xs font-mono text-amber-400 items-center gap-2">ROUNDS: <b id="countRoundsDisplay" class="text-white">0</b></div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 w-full mt-8">
+          <button onclick="window.resetTimer()" class="py-4 bg-gym-800 hover:bg-gym-700 text-slate-200 font-bold uppercase rounded-xl border border-gym-700 flex flex-col items-center shadow-md">
+            <i class="ph-bold ph-arrow-counter-clockwise text-xl"></i><span class="text-[10px]">RESET</span>
+          </button>
+          <button id="btnTimerPrimary" onclick="window.toggleTimer()" class="py-4 bg-amber-400 hover:bg-amber-300 text-gym-950 font-black uppercase rounded-xl flex flex-col items-center shadow-lg shadow-amber-400/25">
+            <i id="btnTimerPrimaryIcon" class="ph-fill ph-play text-2xl"></i><span id="btnTimerPrimaryLabel" class="text-[10px]">START</span>
+          </button>
+          <button onclick="window.handleTimerLap()" class="py-4 bg-gym-800 hover:bg-gym-700 text-slate-200 font-bold uppercase rounded-xl border border-gym-700 flex flex-col items-center shadow-md">
+            <i id="btnTimerLapIcon" class="ph-bold ph-flag text-xl"></i><span id="btnTimerLapLabel" class="text-[10px]">SPLIT</span>
+          </button>
         </div>
       </div>
+      
+      <div id="lapContainer" class="hidden bg-gym-900 border border-gym-800 rounded-xl p-4">
+        <div id="lapsList" class="space-y-1.5 max-h-40 overflow-y-auto text-xs font-mono"></div>
+      </div>
+    </section>
 
-      <!-- Benchmark "Girls" & Hero WODs -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <i class="ph-bold ph-medal text-amber-400 text-base"></i> Benchmark "Girls" & Metcon PRs
-          </h3>
-          <span class="text-[11px] text-slate-500 font-mono">Standard Rx Whiteboard</span>
-        </div>
-
-        <div id="benchmarkCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Populated by renderBenchmarkCards() -->
+    <!-- ==================== SECTION 3: BENCHMARKS ==================== -->
+    <section id="view-benchmarks" class="hidden space-y-4">
+      <div class="bg-gradient-to-r from-gym-900 to-gym-850 border border-gym-800 p-5 rounded-2xl">
+        <h3 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">My PRs & Benchmarks</h3>
+        <p class="text-xs text-slate-400">Record classic benchmarks to track your fitness journey.</p>
+        <div id="benchmarkCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <!-- Populated by JS -->
         </div>
       </div>
     </section>
 
-    <!-- ==================== SECTION 4: SQUAD FEED / LEADERBOARD ==================== -->
-    <section id="view-leaderboard" class="hidden space-y-4">
-      <div class="bg-gym-900 border border-gym-800 p-5 rounded-2xl shadow-xl">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gym-800 pb-4">
-          <div>
-            <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-              <i class="ph-bold ph-trophy text-amber-400"></i> Squad Leaderboard & Comparisons
-            </h2>
-            <p class="text-xs text-slate-400">Compare Strength loads and Metcon scores across your athlete roster.</p>
-          </div>
-
-          <!-- Component Selector Dropdown -->
-          <div class="flex items-center gap-2">
-            <label class="text-xs text-slate-400 uppercase font-bold">Workout / Lift:</label>
-            <select id="leaderboardWodSelect" onchange="renderLeaderboard()" class="bg-gym-850 border border-gym-700 px-3 py-1.5 rounded-lg text-xs font-bold text-white outline-none focus:border-amber-400">
-              <!-- Dynamically populated -->
-            </select>
-          </div>
-        </div>
-
-        <!-- Table -->
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-gym-850 text-slate-400 font-mono uppercase text-[10px] tracking-wider border-b border-gym-800">
-              <tr>
-                <th class="py-3 px-3">Rank</th>
-                <th class="py-3 px-3">Athlete</th>
-                <th class="py-3 px-3">Strength (Part A)</th>
-                <th class="py-3 px-3">Metcon Score (Part B)</th>
-                <th class="py-3 px-3">Division</th>
-                <th class="py-3 px-3">Date</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboardTableBody" class="divide-y divide-gym-800 font-mono">
-              <!-- Populated dynamically -->
-            </tbody>
-          </table>
-          <div id="leaderboardEmptyState" class="hidden text-center py-8 text-slate-500 text-xs">
-            No entries logged for this specific event yet. Put your score on the board!
-          </div>
-        </div>
+    <!-- ==================== SECTION 4: COMMUNITY ==================== -->
+    <section id="view-community" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+          <i class="ph-bold ph-globe text-cyan-400"></i> Global Community Feed
+        </h2>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">See recent workouts from all authenticated athletes.</p>
+      
+      <div id="communityFeedList" class="space-y-4">
+        <!-- Populated via Firebase -->
       </div>
     </section>
 
   </main>
 
-  <!-- ==================== MODALS ==================== -->
-  
-  <!-- MODAL: MULTI-PART CLASS TEMPLATES -->
-  <div id="templateModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gym-800 pb-3">
-        <h3 class="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <i class="ph-bold ph-sparkle text-amber-400"></i> Multi-Part Class Templates
-        </h3>
-        <button onclick="closeModal('templateModal')" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-      </div>
-      <p class="text-xs text-slate-400">Click any standard daily format to load pre-configured Strength + Metcon sections:</p>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-      <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1" id="templateList">
-        <!-- Rendered via JS -->
-      </div>
-    </div>
-  </div>
+    // Standard fallback config for external GitHub hosting. Overridden if in immersive.
+    let firebaseConfig = {
+      apiKey: "DEMO_KEY", authDomain: "demo.firebaseapp.com", projectId: "demo-project"
+    };
+    if (typeof __firebase_config !== 'undefined') {
+      firebaseConfig = JSON.parse(__firebase_config);
+    }
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'wodforge-github-demo';
 
-  <!-- MODAL: ATHLETE ROSTER MANAGER -->
-  <div id="athleteModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gym-800 pb-3">
-        <h3 class="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <i class="ph-bold ph-users text-amber-400"></i> Manage Athletes
-        </h3>
-        <button onclick="closeModal('athleteModal')" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-      </div>
+    let app, auth, db, currentUserId, currentUserName = "Athlete";
+    let isFirebaseReady = false;
+    
+    // Core Data State
+    let allCloudWorkouts = []; 
 
-      <div id="rosterList" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-
-      <div class="pt-3 border-t border-gym-800 space-y-2">
-        <span class="text-xs font-bold text-slate-400 uppercase">Add Athlete / Friend</span>
-        <div class="flex gap-2">
-          <input type="text" id="newAthleteName" placeholder="Athlete Name" class="flex-1 bg-gym-850 border border-gym-700 px-3 py-2 rounded-lg text-xs text-white outline-none focus:border-amber-400">
-          <button onclick="handleAddAthlete()" class="px-4 py-2 bg-amber-400 text-gym-950 font-black text-xs uppercase tracking-wider rounded-lg hover:bg-amber-300">
-            Add
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: BENCHMARK PICKER -->
-  <div id="benchmarkModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gym-800 pb-3">
-        <h3 class="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <i class="ph-bold ph-lightning text-amber-400"></i> Benchmark Library
-        </h3>
-        <button onclick="closeModal('benchmarkModal')" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-      </div>
-      <p class="text-xs text-slate-400">Choose a benchmark to populate into Part B Conditioning:</p>
-      <div class="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1" id="benchmarkQuickPickList"></div>
-    </div>
-  </div>
-
-  <!-- MODAL: BACKUP DATA SYNC -->
-  <div id="dataModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-gym-900 border border-gym-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gym-800 pb-3">
-        <h3 class="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
-          <i class="ph-bold ph-cloud-arrow-down text-amber-400"></i> Backup & Sync
-        </h3>
-        <button onclick="closeModal('dataModal')" class="text-slate-400 hover:text-white"><i class="ph-bold ph-x text-lg"></i></button>
-      </div>
-
-      <p class="text-xs text-slate-300 leading-relaxed">
-        Everything is saved in your browser's LocalStorage. Export your backup to share across devices or sync with gym crew.
-      </p>
-
-      <div class="grid grid-cols-2 gap-3 pt-2">
-        <button onclick="exportDataJson()" class="p-3 bg-gym-800 hover:bg-gym-700 border border-gym-700 rounded-xl text-left flex flex-col gap-1 transition">
-          <i class="ph-bold ph-download-simple text-amber-400 text-lg"></i>
-          <span class="text-xs font-bold text-white">Export Backup</span>
-          <span class="text-[10px] text-slate-400">Save .json file</span>
-        </button>
-
-        <label class="p-3 bg-gym-800 hover:bg-gym-700 border border-gym-700 rounded-xl text-left flex flex-col gap-1 cursor-pointer transition">
-          <i class="ph-bold ph-upload-simple text-amber-400 text-lg"></i>
-          <span class="text-xs font-bold text-white">Import Backup</span>
-          <span class="text-[10px] text-slate-400">Choose .json file</span>
-          <input type="file" id="importFileInput" accept=".json" onchange="importDataJson(event)" class="hidden">
-        </label>
-      </div>
-
-      <div class="pt-3 border-t border-gym-800 flex justify-between items-center">
-        <button onclick="resetToSampleData()" class="text-xs text-red-400 hover:underline">
-          Reset Demo Data
-        </button>
-        <span id="dataStatusMsg" class="text-[11px] text-emerald-400 hidden font-mono">Saved!</span>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // --- MULTI-PART CLASS TEMPLATES ---
-    const MULTI_PART_TEMPLATES = [
-      {
-        name: "Standard Box Daily: Heavy Squat + Sprint Metcon",
-        sessionTitle: "Daily Class: Back Squat + Sprint Couplet",
-        partA: {
-          movement: "Back Squat",
-          scheme: "5 x 3 Working Sets (building to heavy 3)",
-          topWeight: "315 lbs",
-          notes: "Focus on speed out of the hole."
-        },
-        partB: {
-          name: "Sprint Couplet",
-          type: "For Time",
-          division: "Rx",
-          scheme: "21-15-9 reps for time:\nThrusters (95/65 lbs)\nBar-Facing Burpees",
-          score: "05:15",
-          notes: "Push pacing from rep 1."
-        },
-        partC: {
-          included: true,
-          title: "3 Sets: 15 GHD Sit-ups + 45s Hollow Rock Hold",
-          result: "Completed all sets unbroken"
-        }
-      },
-      {
-        name: "Olympic Lifting Complex + 12-min AMRAP",
-        sessionTitle: "Daily Class: Clean & Jerk + AMRAP",
-        partA: {
-          movement: "Clean & Jerk",
-          scheme: "Every 2 mins x 6 sets: 1 Hang Clean + 1 Clean & Jerk (Build)",
-          topWeight: "225 lbs",
-          notes: "Solid hip contact, fast elbows."
-        },
-        partB: {
-          name: "12-Minute Triple",
-          type: "AMRAP",
-          division: "Rx",
-          scheme: "12-Min AMRAP:\n12 Wall Balls (20/14 lbs)\n12 Kettlebell Swings (53/35 lbs)\n12 Calorie Row",
-          score: "5 Rounds + 8 Reps",
-          notes: "Consistent 2:10 lap times."
-        },
-        partC: {
-          included: false
-        }
-      },
-      {
-        name: "Strict Gymnastics Skill + EMOM Conditioning",
-        sessionTitle: "Daily Class: Strict Pull / Dip + EMOM",
-        partA: {
-          movement: "Strict Weighted Pull-Ups & Ring Dips",
-          scheme: "4 Sets of: 5 Weighted Pull-ups + 6-8 Strict Ring Dips",
-          topWeight: "+35 lb vest",
-          notes: "Full extension at bottom."
-        },
-        partB: {
-          name: "16-min Alternating EMOM",
-          type: "EMOM",
-          division: "Rx",
-          scheme: "Min 1: 15 Box Jumps (24/20\")\nMin 2: 12 Dumbbell Snatches (50/35 lbs)\nMin 3: 15/12 Calorie Echo Bike\nMin 4: Rest",
-          score: "Completed all 16 rounds",
-          notes: "Heart rate steady throughout."
-        },
-        partC: {
-          included: false
-        }
-      }
-    ];
-
-    // --- STANDARD BENCHMARK WODS ---
-    const BENCHMARK_WODS = [
-      {
-        id: 'fran',
-        name: 'Fran',
-        type: 'For Time',
-        scheme: '21-15-9 reps for time of:\nThrusters (95/65 lbs)\nPull-Ups',
-        description: 'The quintessential CrossFit sprint.'
-      },
-      {
-        id: 'murph',
-        name: 'Murph',
-        type: 'For Time',
-        scheme: '1 Mile Run\n100 Pull-Ups\n200 Push-Ups\n300 Air Squats\n1 Mile Run\n(With 20/14 lb vest)',
-        description: 'Memorial Day Hero WOD.'
-      },
-      {
-        id: 'cindy',
-        name: 'Cindy',
-        type: 'AMRAP',
-        scheme: '20-Minute AMRAP:\n5 Pull-Ups\n10 Push-Ups\n15 Air Squats',
-        description: 'Classic gymnastics volume test.'
-      },
-      {
-        id: 'grace',
-        name: 'Grace',
-        type: 'For Time',
-        scheme: '30 Clean and Jerks for time (135/95 lbs)',
-        description: 'Barbell cycling benchmark.'
-      },
-      {
-        id: 'helen',
-        name: 'Helen',
-        type: 'For Time',
-        scheme: '3 Rounds for time:\n400m Run\n21 Kettlebell Swings (53/35 lbs)\n12 Pull-Ups',
-        description: 'Aerobic threshold test.'
-      },
-      {
-        id: 'diane',
-        name: 'Diane',
-        type: 'For Time',
-        scheme: '21-15-9:\nDeadlifts (225/155 lbs)\nHandstand Push-Ups',
-        description: 'Posterior chain + shoulder pressing.'
-      }
-    ];
-
-    const STRENGTH_EXERCISES = [
-      'Back Squat',
-      'Clean & Jerk',
-      'Snatch',
-      'Deadlift',
-      'Front Squat',
-      'Strict Press'
-    ];
-
-    const DEFAULT_DATA = {
-      activeAthleteId: 'ath-1',
-      athletes: [
-        { id: 'ath-1', name: 'Coach Dan', avatar: 'D' },
-        { id: 'ath-2', name: 'Sarah Connor', avatar: 'S' },
-        { id: 'ath-3', name: 'Marcus Steel', avatar: 'M' }
-      ],
-      workouts: [
-        {
-          id: 'w-1',
-          athleteId: 'ath-1',
-          sessionTitle: 'Daily Class: Back Squat + Fran',
-          date: '2026-09-28',
-          hasPartA: true,
-          partA: {
-            movement: 'Back Squat',
-            scheme: '5 x 3 Working sets',
-            topWeight: '345 lbs',
-            weightVal: 345,
-            isPR: true,
-            notes: 'Felt crisp, depth was solid.'
-          },
-          hasPartB: true,
-          partB: {
-            name: 'Fran',
-            type: 'For Time',
-            division: 'Rx',
-            scheme: '21-15-9: Thrusters (95 lbs) & Pull-ups',
-            score: '02:58',
-            scoreSeconds: 178,
-            isPR: true,
-            notes: 'First time sub-3! Unbroken thrusters.'
-          },
-          hasPartC: false
-        },
-        {
-          id: 'w-2',
-          athleteId: 'ath-2',
-          sessionTitle: 'Daily Class: Back Squat + Fran',
-          date: '2026-09-28',
-          hasPartA: true,
-          partA: {
-            movement: 'Back Squat',
-            scheme: '5 x 3 Working sets',
-            topWeight: '225 lbs',
-            weightVal: 225,
-            isPR: false,
-            notes: 'Paused at bottom on final rep.'
-          },
-          hasPartB: true,
-          partB: {
-            name: 'Fran',
-            type: 'For Time',
-            division: 'Rx',
-            scheme: '21-15-9: Thrusters (65 lbs) & Pull-ups',
-            score: '03:32',
-            scoreSeconds: 212,
-            isPR: true,
-            notes: 'Butterfly pull-ups felt fast.'
-          },
-          hasPartC: false
-        },
-        {
-          id: 'w-3',
-          athleteId: 'ath-3',
-          sessionTitle: 'Daily Class: Back Squat + Fran',
-          date: '2026-09-28',
-          hasPartA: true,
-          partA: {
-            movement: 'Back Squat',
-            scheme: '5 x 3 Working sets',
-            topWeight: '415 lbs',
-            weightVal: 415,
-            isPR: true,
-            notes: 'PR for 3-rep max!'
-          },
-          hasPartB: true,
-          partB: {
-            name: 'Fran',
-            type: 'For Time',
-            division: 'Scaled',
-            scheme: '21-15-9: Thrusters (75 lbs) & Ring Rows',
-            score: '04:15',
-            scoreSeconds: 255,
-            isPR: false,
-            notes: 'Legs felt heavy after squats.'
-          },
-          hasPartC: false
-        }
-      ]
+    function showAlert(msg) {
+      document.getElementById('alertMessage').textContent = msg;
+      const m = document.getElementById('alertModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+    }
+    window.closeAlert = () => {
+      const m = document.getElementById('alertModal');
+      m.classList.add('hidden'); m.classList.remove('flex');
     };
 
-    let appState = {
-      activeAthleteId: 'ath-1',
-      athletes: [],
-      workouts: []
-    };
-
-    function loadState() {
+    async function initFirebase() {
       try {
-        const stored = localStorage.getItem('wodforge_db_v2');
-        if (stored) {
-          appState = JSON.parse(stored);
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // Required Auth Flow per rules
+        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        if (token) {
+          await signInWithCustomToken(auth, token);
         } else {
-          appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
-          saveState();
+          await signInAnonymously(auth);
         }
-      } catch (e) {
-        console.error('State load error', e);
-        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUserId = user.uid;
+            
+            // Check local identity map or user profile
+            const savedName = localStorage.getItem(`athleteName_${currentUserId}`) || user.displayName;
+            if (!savedName || savedName.includes("Anonymous")) {
+               document.getElementById('profileSetupModal').classList.remove('hidden');
+               document.getElementById('profileSetupModal').classList.add('flex');
+            } else {
+               currentUserName = savedName;
+               finalizeAuthUI();
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Firebase Init Error:", err);
+        showAlert("Database failed to load. Operating in offline demo mode.");
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('mainContent').classList.add('flex');
       }
     }
 
-    function saveState() {
-      localStorage.setItem('wodforge_db_v2', JSON.stringify(appState));
-    }
-
-    class SoundEngine {
-      constructor() { this.ctx = null; }
-      init() {
-        if (!this.ctx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          this.ctx = new AudioContext();
-        }
-        if (this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-      }
-      playBeep(frequency = 440, duration = 0.15, type = 'sine') {
-        const audioEnabled = document.getElementById('chkAudioSound').checked;
-        if (!audioEnabled) return;
-        try {
-          this.init();
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = type;
-          osc.frequency.setValueAtTime(frequency, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + duration);
-        } catch (e) {
-          console.warn('Audio playback waiting for gesture', e);
-        }
-      }
-      shortCountdownBeep() { this.playBeep(600, 0.12, 'square'); }
-      startHorn() { this.playBeep(1200, 0.6, 'sine'); }
-      finishSiren() {
-        this.playBeep(880, 0.2);
-        setTimeout(() => this.playBeep(1320, 0.5), 200);
-      }
-    }
-    const sounds = new SoundEngine();
-
-    let timerState = {
-      mode: 'forTime',
-      isRunning: false,
-      isCountdown: false,
-      countdownSecs: 10,
-      elapsedMs: 0,
-      intervalId: null,
-      lastTick: 0,
-      currentRound: 1,
-      amrapRoundsCount: 0,
-      laps: []
+    window.saveAthleteProfile = async () => {
+      const name = document.getElementById('setupAthleteName').value.trim();
+      if (!name) return showAlert("Please enter a name.");
+      currentUserName = name;
+      localStorage.setItem(`athleteName_${currentUserId}`, name);
+      try {
+        await updateProfile(auth.currentUser, { displayName: name });
+      } catch(e) {} // best effort
+      document.getElementById('profileSetupModal').classList.add('hidden');
+      document.getElementById('profileSetupModal').classList.remove('flex');
+      finalizeAuthUI();
     };
 
-    function setTimerMode(mode) {
-      if (timerState.isRunning) {
-        if (!confirm('Switching modes will reset the active timer. Continue?')) return;
-        resetTimer();
-      }
-      timerState.mode = mode;
+    function finalizeAuthUI() {
+      isFirebaseReady = true;
+      document.getElementById('navUserName').textContent = currentUserName;
+      document.getElementById('navUserAvatar').textContent = currentUserName.charAt(0).toUpperCase();
+      document.getElementById('userProfilePill').classList.remove('hidden');
+      document.getElementById('userProfilePill').classList.add('flex');
+      
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('mainContent').classList.remove('hidden');
+      document.getElementById('mainContent').classList.add('flex');
+      
+      subscribeToCloudData();
+    }
 
-      document.querySelectorAll('.timer-mode-btn').forEach(b => {
-        b.className = 'timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400 hover:text-white';
+    function subscribeToCloudData() {
+      if (!currentUserId || !db) return;
+      
+      // Strict Path Rule: public data
+      const workoutsRef = collection(db, 'artifacts', appId, 'public', 'data', 'workouts');
+      
+      // No complex queries Rule: Fetch all, process in memory
+      onSnapshot(workoutsRef, (snapshot) => {
+        allCloudWorkouts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).sort((a, b) => b.timestamp - a.timestamp); // Mem sort
+        
+        renderMyHistory();
+        renderCommunityFeed();
+        renderBenchmarkCards();
+      }, (err) => {
+        console.error("Snapshot error:", err);
+        showAlert("Failed to sync live data stream.");
       });
-      document.getElementById(`mode-${mode}`).className = 'timer-mode-btn py-2 text-xs font-black uppercase rounded-lg bg-amber-400 text-gym-950 shadow-md';
-
-      document.getElementById('cfg-forTime').classList.add('hidden');
-      document.getElementById('cfg-amrap').classList.add('hidden');
-      document.getElementById('cfg-emom').classList.add('hidden');
-      document.getElementById('cfg-tabata').classList.add('hidden');
-      document.getElementById(`cfg-${mode}`).classList.remove('hidden');
-
-      document.getElementById('timerModeLabel').textContent = mode === 'forTime' ? 'FOR TIME' : mode.toUpperCase();
-
-      const amrapPill = document.getElementById('amrapRepsPill');
-      if (mode === 'amrap') {
-        amrapPill.classList.remove('hidden');
-        document.getElementById('btnTimerLapLabel').textContent = '+1 ROUND';
-        document.getElementById('btnTimerLapIcon').className = 'ph-bold ph-plus-circle text-xl';
-      } else {
-        amrapPill.classList.add('hidden');
-        document.getElementById('btnTimerLapLabel').textContent = 'SPLIT';
-        document.getElementById('btnTimerLapIcon').className = 'ph-bold ph-flag text-xl';
-      }
-      resetTimer();
     }
 
-    function toggleTimer() {
-      sounds.init();
-      if (timerState.isRunning || timerState.isCountdown) {
-        pauseTimer();
-      } else {
-        startTimer();
-      }
-    }
-
-    function startTimer() {
-      const useCountdown = document.getElementById('chkCountdown').checked;
-      if (timerState.elapsedMs === 0 && useCountdown && !timerState.isCountdown) {
-        timerState.isCountdown = true;
-        timerState.countdownSecs = 10;
-        updatePrimaryButtonUI(true);
-        document.getElementById('timerModeLabel').textContent = 'COUNTDOWN';
-        document.getElementById('timerMainClock').classList.add('text-amber-400');
-        sounds.shortCountdownBeep();
-
-        timerState.intervalId = setInterval(() => {
-          timerState.countdownSecs--;
-          if (timerState.countdownSecs > 0) {
-            document.getElementById('timerMainClock').textContent = `00:${String(timerState.countdownSecs).padStart(2, '0')}`;
-            if (timerState.countdownSecs <= 3) sounds.shortCountdownBeep();
-          } else {
-            clearInterval(timerState.intervalId);
-            timerState.isCountdown = false;
-            sounds.startHorn();
-            beginActiveRun();
-          }
-        }, 1000);
-        document.getElementById('timerMainClock').textContent = '00:10';
-        return;
-      }
-      beginActiveRun();
-    }
-
-    function beginActiveRun() {
-      timerState.isRunning = true;
-      timerState.lastTick = Date.now();
-      updatePrimaryButtonUI(true);
-      document.getElementById('timerModeLabel').textContent = timerState.mode.toUpperCase();
-      document.getElementById('timerMainClock').classList.remove('text-amber-400');
-      document.getElementById('timerDisplayCard').classList.add('timer-active-pulse');
-
-      if (timerState.elapsedMs === 0) {
-        timerState.currentRound = 1;
-        timerState.amrapRoundsCount = 0;
-        document.getElementById('countRoundsDisplay').textContent = '0';
-      }
-      timerState.intervalId = setInterval(timerTick, 100);
-    }
-
-    function timerTick() {
-      const now = Date.now();
-      const delta = now - timerState.lastTick;
-      timerState.lastTick = now;
-      timerState.elapsedMs += delta;
-      const totalSec = Math.floor(timerState.elapsedMs / 1000);
-
-      if (timerState.mode === 'forTime') {
-        const capMin = parseFloat(document.getElementById('forTimeCap').value);
-        if (capMin > 0 && totalSec >= capMin * 60) {
-          finishWorkout('Time Cap Reached!');
-          return;
-        }
-        renderClockDisplay(totalSec);
-      } else if (timerState.mode === 'amrap') {
-        const amrapMins = parseInt(document.getElementById('amrapMinutes').value) || 20;
-        const totalDurationSec = amrapMins * 60;
-        const remainSec = Math.max(0, totalDurationSec - totalSec);
-        renderClockDisplay(remainSec);
-
-        if (remainSec <= 3 && remainSec > 0 && Math.floor(delta) > 0) {
-          sounds.shortCountdownBeep();
-        }
-        if (remainSec === 0) {
-          finishWorkout('AMRAP Complete!');
-        }
-      } else if (timerState.mode === 'emom') {
-        const intervalMin = parseInt(document.getElementById('emomInterval').value) || 1;
-        const totalMinutes = parseInt(document.getElementById('emomTotalMinutes').value) || 10;
-        const intervalSec = intervalMin * 60;
-        const totalMaxSec = totalMinutes * 60;
-
-        const roundIndex = Math.floor(totalSec / intervalSec) + 1;
-        const currentIntervalRemain = intervalSec - (totalSec % intervalSec);
-
-        document.getElementById('timerIntervalStatus').textContent = `ROUND ${roundIndex} OF ${totalMinutes / intervalMin}`;
-        renderClockDisplay(currentIntervalRemain);
-
-        if (currentIntervalRemain <= 3 && currentIntervalRemain > 0) sounds.shortCountdownBeep();
-        if (currentIntervalRemain === intervalSec) sounds.startHorn();
-        if (totalSec >= totalMaxSec) finishWorkout('EMOM Finished!');
-      } else if (timerState.mode === 'tabata') {
-        const workSec = parseInt(document.getElementById('tabataWork').value) || 20;
-        const restSec = parseInt(document.getElementById('tabataRest').value) || 10;
-        const numRounds = parseInt(document.getElementById('tabataRounds').value) || 8;
-        const roundDuration = workSec + restSec;
-
-        const roundIndex = Math.min(numRounds, Math.floor(totalSec / roundDuration) + 1);
-        const secondInRound = totalSec % roundDuration;
-        const isWork = secondInRound < workSec;
-        const timeLeft = isWork ? (workSec - secondInRound) : (roundDuration - secondInRound);
-
-        document.getElementById('timerIntervalStatus').textContent = `${isWork ? '🔥 WORK' : '💤 REST'} • ROUND ${roundIndex}/${numRounds}`;
-        document.getElementById('timerIntervalStatus').className = isWork ? 'text-amber-400 font-bold text-sm' : 'text-sky-400 font-bold text-sm';
-        renderClockDisplay(timeLeft);
-
-        if (timeLeft <= 3 && timeLeft > 0) sounds.shortCountdownBeep();
-        if (totalSec >= numRounds * roundDuration) finishWorkout('Tabata Finished!');
-      }
-    }
-
-    function renderClockDisplay(seconds) {
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      document.getElementById('timerMainClock').textContent = 
-        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function pauseTimer() {
-      clearInterval(timerState.intervalId);
-      timerState.isRunning = false;
-      timerState.isCountdown = false;
-      updatePrimaryButtonUI(false);
-      document.getElementById('timerDisplayCard').classList.remove('timer-active-pulse');
-    }
-
-    function resetTimer() {
-      pauseTimer();
-      timerState.elapsedMs = 0;
-      timerState.currentRound = 1;
-      timerState.amrapRoundsCount = 0;
-      timerState.laps = [];
-      document.getElementById('countRoundsDisplay').textContent = '0';
-      document.getElementById('timerIntervalStatus').textContent = 'ROUND 1';
-      document.getElementById('timerIntervalStatus').className = 'text-slate-400 font-semibold text-sm';
-      document.getElementById('timerFinishedBanner').classList.add('hidden');
-      document.getElementById('lapContainer').classList.add('hidden');
-      document.getElementById('lapsList').innerHTML = '';
-      document.getElementById('timerSubDisplay').textContent = 'LAP: 00:00';
-
-      if (timerState.mode === 'amrap') {
-        const amrapMins = parseInt(document.getElementById('amrapMinutes').value) || 20;
-        renderClockDisplay(amrapMins * 60);
-      } else {
-        renderClockDisplay(0);
-      }
-    }
-
-    function handleTimerLap() {
-      if (timerState.mode === 'amrap') {
-        timerState.amrapRoundsCount++;
-        document.getElementById('countRoundsDisplay').textContent = timerState.amrapRoundsCount;
-        sounds.playBeep(800, 0.1);
-        return;
-      }
-      if (!timerState.isRunning && timerState.elapsedMs === 0) return;
-      const currentLapSec = Math.floor(timerState.elapsedMs / 1000);
-      const m = Math.floor(currentLapSec / 60);
-      const s = currentLapSec % 60;
-      const formatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      
-      timerState.laps.unshift({ round: timerState.laps.length + 1, time: formatted });
-      document.getElementById('lapContainer').classList.remove('hidden');
-      
-      const lapRow = document.createElement('div');
-      lapRow.className = 'flex justify-between py-1 border-b border-gym-800 text-slate-300';
-      lapRow.innerHTML = `<span>Split #${timerState.laps.length}</span><span class="text-amber-400 font-bold">${formatted}</span>`;
-      document.getElementById('lapsList').prepend(lapRow);
-      document.getElementById('timerSubDisplay').textContent = `LAST: ${formatted}`;
-      sounds.playBeep(700, 0.1);
-    }
-
-    function clearLaps() {
-      timerState.laps = [];
-      document.getElementById('lapsList').innerHTML = '';
-      document.getElementById('lapContainer').classList.add('hidden');
-    }
-
-    function updatePrimaryButtonUI(running) {
-      const btn = document.getElementById('btnTimerPrimary');
-      const icon = document.getElementById('btnTimerPrimaryIcon');
-      const label = document.getElementById('btnTimerPrimaryLabel');
-
-      if (running) {
-        btn.className = 'py-4 px-4 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black uppercase rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-500/25 transition';
-        icon.className = 'ph-fill ph-pause text-2xl';
-        label.textContent = 'PAUSE';
-      } else {
-        btn.className = 'py-4 px-4 bg-amber-400 hover:bg-amber-300 active:scale-95 text-gym-950 font-black uppercase rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-amber-400/25 transition';
-        icon.className = 'ph-fill ph-play text-2xl';
-        label.textContent = timerState.elapsedMs > 0 ? 'RESUME' : 'START';
-      }
-    }
-
-    function finishWorkout(msg) {
-      pauseTimer();
-      sounds.finishSiren();
-      confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
-
-      const totalSec = Math.floor(timerState.elapsedMs / 1000);
-      const m = Math.floor(totalSec / 60);
-      const s = totalSec % 60;
-      const timeFormatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-      let summaryText = `Time: ${timeFormatted}`;
-      if (timerState.mode === 'amrap') {
-        summaryText = `Score: ${timerState.amrapRoundsCount} Rounds`;
-      }
-      document.getElementById('timerFinishedSummary').textContent = `${msg} • ${summaryText}`;
-      document.getElementById('timerFinishedBanner').classList.remove('hidden');
-    }
-
-    // Prefills Part B in Logger directly with the timer result
-    function prefillPartBFromTimer() {
-      switchTab('log');
-      const totalSec = Math.floor(timerState.elapsedMs / 1000);
-      const m = Math.floor(totalSec / 60);
-      const s = totalSec % 60;
-      const timeFormatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-      document.getElementById('chkIncludePartB').checked = true;
-      togglePartVisibility('partB');
-
-      if (timerState.mode === 'forTime') {
-        document.getElementById('partB_type').value = 'For Time';
-        document.getElementById('partB_score').value = timeFormatted;
-      } else if (timerState.mode === 'amrap') {
-        document.getElementById('partB_type').value = 'AMRAP';
-        document.getElementById('partB_score').value = `${timerState.amrapRoundsCount} Rounds`;
-      } else {
-        document.getElementById('partB_score').value = timeFormatted;
-      }
-      adaptMetconScorePrompt();
-    }
-
-    function sendToTimerWithHUD() {
-      const pAmovement = document.getElementById('partA_movement').value.trim();
-      const pAscheme = document.getElementById('partA_scheme').value.trim();
-      const pAweight = document.getElementById('partA_topWeight').value.trim();
-      const pBtype = document.getElementById('partB_type').value;
-      const pBname = document.getElementById('partB_name').value.trim();
-
-      if (pAmovement || pAweight) {
-        document.getElementById('timerStrengthHUD').classList.remove('hidden');
-        document.getElementById('hudPartATitle').textContent = pAmovement || 'Strength Part A';
-        document.getElementById('hudPartALoad').textContent = `Top Load: ${pAweight || '--'} • Scheme: ${pAscheme || '--'}`;
-      } else {
-        document.getElementById('timerStrengthHUD').classList.add('hidden');
-      }
-
-      switchTab('timer');
-      if (pBtype === 'For Time') setTimerMode('forTime');
-      else if (pBtype === 'AMRAP') setTimerMode('amrap');
-      else if (pBtype === 'EMOM') setTimerMode('emom');
-      else if (pBtype === 'Tabata') setTimerMode('tabata');
-      if (pBname) document.getElementById('timerModeLabel').textContent = pBname.toUpperCase();
-    }
-
-    function togglePartVisibility(part) {
-      if (part === 'partA') {
-        const checked = document.getElementById('chkIncludePartA').checked;
-        document.getElementById('section-partA').style.display = checked ? 'block' : 'none';
-      } else if (part === 'partB') {
-        const checked = document.getElementById('chkIncludePartB').checked;
-        document.getElementById('section-partB').style.display = checked ? 'block' : 'none';
-      } else if (part === 'partC') {
-        const checked = document.getElementById('chkIncludePartC').checked;
-        const sec = document.getElementById('section-partC');
-        if (checked) sec.classList.remove('hidden');
-        else sec.classList.add('hidden');
-      }
-    }
-
-    function adaptMetconScorePrompt() {
-      const type = document.getElementById('partB_type').value;
-      const label = document.getElementById('partB_scoreLabel');
-      const input = document.getElementById('partB_score');
-
-      if (type === 'For Time') {
-        label.textContent = 'Score (Time - MM:SS) *';
-        input.placeholder = '04:30';
-      } else if (type === 'AMRAP') {
-        label.textContent = 'Score (Rounds + Reps) *';
-        input.placeholder = '6 Rds + 10 Reps';
-      } else {
-        label.textContent = 'Result / Notes *';
-        input.placeholder = 'Completed';
-      }
-    }
-
-    function handleSaveMultiPartWorkout(e) {
+    window.handleSaveMultiPartWorkout = async (e) => {
       e.preventDefault();
-      const sessionTitle = document.getElementById('logSessionTitle').value.trim();
-      const athleteId = document.getElementById('logAthleteSelect').value;
-      const date = document.getElementById('logDate').value || new Date().toISOString().split('T')[0];
+      if (!isFirebaseReady) return showAlert("Connecting to database. Please wait.");
 
+      const btn = document.getElementById('btnSaveWorkout');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="w-5 h-5 border-2 border-gym-950 border-t-transparent rounded-full animate-spin"></div>';
+
+      try {
+        const payload = buildWorkoutPayload();
+        if (!payload) { btn.disabled = false; btn.innerHTML = 'Save To Cloud'; return; }
+        
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'workouts'), payload);
+        
+        if (payload.partA?.isPR || payload.partB?.isPR) confetti({ particleCount: 80, spread: 70 });
+        
+        document.getElementById('wodMultiPartForm').reset();
+        document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+        window.switchTab('log');
+      } catch (err) {
+        console.error(err);
+        showAlert("Failed to save workout to cloud.");
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ph-bold ph-cloud-arrow-up text-lg"></i> Save To Cloud';
+    };
+
+    function buildWorkoutPayload() {
       const hasPartA = document.getElementById('chkIncludePartA').checked;
       const hasPartB = document.getElementById('chkIncludePartB').checked;
       const hasPartC = document.getElementById('chkIncludePartC').checked;
 
-      if (!hasPartA && !hasPartB && !hasPartC) {
-        alert('Please enable and fill at least one section (Part A or Part B).');
-        return;
-      }
+      if (!hasPartA && !hasPartB && !hasPartC) { showAlert('Fill at least one section.'); return null; }
 
-      // Part A Strength extraction
-      let partA = null;
+      let partA = null, partB = null, partC = null;
       if (hasPartA) {
-        const topWeight = document.getElementById('partA_topWeight').value.trim();
-        const weightMatch = topWeight.match(/\d+/);
+        const exercises = extractExercises('partA');
         partA = {
-          movement: document.getElementById('partA_movement').value.trim() || 'Strength Work',
-          scheme: document.getElementById('partA_scheme').value.trim(),
-          topWeight: topWeight,
-          weightVal: weightMatch ? parseInt(weightMatch[0]) : null,
+          movement: exercises.length > 0 ? exercises[0].movement : 'Strength Work',
+          exercises,
           isPR: document.getElementById('partA_isPR').checked,
           notes: document.getElementById('partA_notes').value.trim()
         };
       }
-
-      // Part B Metcon extraction
-      let partB = null;
       if (hasPartB) {
-        const score = document.getElementById('partB_score').value.trim();
-        const type = document.getElementById('partB_type').value;
-        let scoreSeconds = null;
-        let scoreReps = null;
-
-        if (type === 'For Time' && score.includes(':')) {
-          const p = score.split(':');
-          scoreSeconds = (parseInt(p[0]) * 60) + parseInt(p[1]);
-        } else if (type === 'AMRAP') {
-          const m = score.match(/\d+/);
-          if (m) scoreReps = parseInt(m[0]);
-        }
-
         partB = {
           name: document.getElementById('partB_name').value.trim() || 'Metcon',
-          type: type,
+          type: document.getElementById('partB_type').value,
           division: document.querySelector('input[name="partB_division"]:checked').value,
-          score: score,
-          scoreSeconds: scoreSeconds,
-          scoreReps: scoreReps,
-          scheme: document.getElementById('partB_scheme').value.trim(),
+          score: document.getElementById('partB_score').value.trim(),
+          exercises: extractExercises('partB'),
           isPR: document.getElementById('partB_isPR').checked,
           notes: document.getElementById('partB_notes').value.trim()
         };
       }
-
-      // Part C Accessory extraction
-      let partC = null;
       if (hasPartC) {
         partC = {
-          title: document.getElementById('partC_title').value.trim(),
+          exercises: extractExercises('partC'),
           result: document.getElementById('partC_result').value.trim()
         };
       }
 
-      const newSession = {
-        id: 'w-' + Date.now(),
-        athleteId,
-        sessionTitle,
-        date,
-        hasPartA,
-        partA,
-        hasPartB,
-        partB,
-        hasPartC,
-        partC
+      return {
+        userId: currentUserId,
+        athleteName: currentUserName,
+        sessionTitle: document.getElementById('logSessionTitle').value.trim(),
+        date: document.getElementById('logDate').value || new Date().toISOString().split('T')[0],
+        timestamp: Date.now(),
+        hasPartA, partA,
+        hasPartB, partB,
+        hasPartC, partC
       };
-
-      appState.workouts.unshift(newSession);
-      saveState();
-
-      if ((partA && partA.isPR) || (partB && partB.isPR)) {
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 } });
-      }
-
-      document.getElementById('wodMultiPartForm').reset();
-      document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('chkIncludePartA').checked = true;
-      document.getElementById('chkIncludePartB').checked = true;
-      document.getElementById('chkIncludePartC').checked = false;
-      togglePartVisibility('partA');
-      togglePartVisibility('partB');
-      togglePartVisibility('partC');
-
-      updateAthleteUI();
-      renderHistoryLogs();
     }
 
-    function renderHistoryLogs() {
-      const container = document.getElementById('workoutHistoryList');
-      const filterId = document.getElementById('historyFilterAthlete').value;
+    function extractExercises(part) {
+      const container = document.getElementById(`${part}_exercises`);
+      if (!container) return [];
+      const rows = container.querySelectorAll('.exercise-row');
+      const exercises = [];
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs[0].value || inputs[1].value || inputs[2].value) {
+          exercises.push({ movement: inputs[0].value.trim(), reps: inputs[1].value.trim(), weight: inputs[2].value.trim() });
+        }
+      });
+      return exercises;
+    }
 
-      let list = appState.workouts;
-      if (filterId !== 'ALL') {
-        list = list.filter(w => w.athleteId === filterId);
+    window.handleDeleteLog = async (id) => {
+      if (!confirm('Delete this workout permanently from the cloud?')) return;
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'workouts', id));
+      } catch (err) {
+        console.error(err);
+        showAlert("Failed to delete log.");
       }
+    };
 
-      if (list.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-12 bg-gym-900 border border-gym-800 rounded-2xl text-slate-500 text-xs">
-            No completed workouts found for this athlete filter. Log your first multi-part session!
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = list.map(w => {
-        const ath = appState.athletes.find(a => a.id === w.athleteId) || { name: 'Unknown', avatar: '?' };
-        
-        return `
-          <div class="bg-gym-900 border border-gym-800 rounded-2xl p-4 sm:p-5 space-y-4 hover:border-gym-700 transition shadow-lg">
-            
-            <!-- Session Top Header -->
-            <div class="flex items-start justify-between border-b border-gym-800 pb-3">
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="w-6 h-6 rounded-full bg-amber-400 text-gym-950 font-black text-xs flex items-center justify-center">
-                    ${ath.avatar || ath.name.charAt(0)}
-                  </span>
-                  <span class="text-xs text-white font-bold">${ath.name}</span>
-                  <span class="text-slate-600">•</span>
-                  <span class="text-xs font-mono text-slate-400">${w.date}</span>
-                </div>
-                <h3 class="text-base font-black text-white mt-1 uppercase tracking-wide">${w.sessionTitle}</h3>
+    // UI RENDERERS
+    function generateWorkoutHtml(w, isCommunity = false) {
+      const isMine = w.userId === currentUserId;
+      return `
+        <div class="bg-gym-900 border ${isMine && isCommunity ? 'border-amber-500/30' : 'border-gym-800'} rounded-2xl p-4 space-y-4 shadow-lg">
+          <div class="flex items-start justify-between border-b border-gym-800 pb-3">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="w-6 h-6 rounded-full bg-amber-400 text-gym-950 font-black text-[10px] flex items-center justify-center">${w.athleteName.charAt(0)}</span>
+                <span class="text-xs text-white font-bold">${w.athleteName}</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-[10px] font-mono text-slate-400">${w.date}</span>
               </div>
-
-              <button onclick="handleDeleteLog('${w.id}')" class="text-slate-500 hover:text-red-400 p-1" title="Delete Workout">
-                <i class="ph-bold ph-trash text-base"></i>
-              </button>
+              <h3 class="text-sm font-black text-white mt-1 uppercase">${w.sessionTitle}</h3>
             </div>
-
-            <!-- Side-by-Side or Stacked Multi-Section Display -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              
-              <!-- PART A SECTION CARD -->
-              ${w.hasPartA && w.partA ? `
-                <div class="bg-gym-850/80 border border-amber-400/20 rounded-xl p-3.5 space-y-2 relative overflow-hidden">
-                  <div class="flex items-center justify-between">
-                    <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-400 border border-amber-400/30">Part A: Strength</span>
-                    ${w.partA.isPR ? `<span class="text-[10px] font-black uppercase text-amber-400">🏆 PR</span>` : ''}
-                  </div>
-                  <div>
-                    <h4 class="text-sm font-black text-white">${w.partA.movement}</h4>
-                    <p class="text-xs text-slate-400 font-mono">${w.partA.scheme || 'Standard sets'}</p>
-                  </div>
-                  <div class="bg-gym-900/90 p-2 rounded-lg border border-gym-800 flex justify-between items-center">
-                    <span class="text-[10px] uppercase font-bold text-slate-500">Top Weight</span>
-                    <span class="text-sm font-mono font-black text-amber-400">${w.partA.topWeight || '--'}</span>
-                  </div>
-                  ${w.partA.notes ? `<p class="text-[11px] text-slate-400 italic">"${w.partA.notes}"</p>` : ''}
-                </div>
-              ` : `
-                <div class="border border-dashed border-gym-800 rounded-xl p-3 flex items-center justify-center text-slate-600 text-xs italic">
-                  No Strength section logged
-                </div>
-              `}
-
-              <!-- PART B SECTION CARD -->
-              ${w.hasPartB && w.partB ? `
-                <div class="bg-gym-850/80 border border-cyan-400/20 rounded-xl p-3.5 space-y-2 relative overflow-hidden">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                      <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-cyan-400/20 text-cyan-400 border border-cyan-400/30">Part B: Metcon</span>
-                      <span class="px-2 py-0.5 rounded text-[9px] font-mono uppercase ${w.partB.division === 'Rx' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700/50 text-slate-300'}">
-                        ${w.partB.division}
-                      </span>
-                    </div>
-                    ${w.partB.isPR ? `<span class="text-[10px] font-black uppercase text-cyan-400">🏆 PR</span>` : ''}
-                  </div>
-                  <div>
-                    <h4 class="text-sm font-black text-white">${w.partB.name} <span class="text-xs font-normal text-slate-400">(${w.partB.type})</span></h4>
-                    ${w.partB.scheme ? `<p class="text-[11px] text-slate-400 font-mono truncate">${w.partB.scheme}</p>` : ''}
-                  </div>
-                  <div class="bg-gym-900/90 p-2 rounded-lg border border-gym-800 flex justify-between items-center">
-                    <span class="text-[10px] uppercase font-bold text-slate-500">Result</span>
-                    <span class="text-sm font-mono font-black text-cyan-400">${w.partB.score || '--'}</span>
-                  </div>
-                  ${w.partB.notes ? `<p class="text-[11px] text-slate-400 italic">"${w.partB.notes}"</p>` : ''}
-                </div>
-              ` : `
-                <div class="border border-dashed border-gym-800 rounded-xl p-3 flex items-center justify-center text-slate-600 text-xs italic">
-                  No Metcon section logged
-                </div>
-              `}
-
-            </div>
-
-            <!-- Optional Part C Accessory Banner -->
-            ${w.hasPartC && w.partC && w.partC.title ? `
-              <div class="bg-gym-850/40 border border-orange-500/20 rounded-xl px-3 py-2 flex items-center justify-between text-xs text-slate-300">
-                <div class="flex items-center gap-2">
-                  <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-orange-400/20 text-orange-400">Part C</span>
-                  <span>${w.partC.title}</span>
-                </div>
-                <span class="font-mono text-orange-400 text-[11px]">${w.partC.result || 'Done'}</span>
+            ${isMine && !isCommunity ? `<button onclick="window.handleDeleteLog('${w.id}')" class="text-slate-500 hover:text-red-400 p-1"><i class="ph-bold ph-trash"></i></button>` : ''}
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${w.hasPartA && w.partA ? `
+              <div class="bg-gym-850/80 border border-amber-400/20 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between"><span class="text-[9px] font-black uppercase bg-amber-400/20 text-amber-400 px-1.5 rounded">Part A</span>${w.partA.isPR ? '🏆' : ''}</div>
+                <h4 class="text-sm font-black text-white">${w.partA.movement}</h4>
+                <ul class="text-[10px] text-slate-300 font-mono space-y-1 bg-gym-900/50 p-2 rounded">
+                  ${w.partA.exercises.map(e => `<li><span class="text-amber-400">${e.reps||'-'}</span> x ${e.movement||'-'} ${e.weight ? `@ ${e.weight}`:''}</li>`).join('')}
+                </ul>
+                <p class="text-[10px] text-slate-400 italic">${w.partA.notes||''}</p>
               </div>
             ` : ''}
-
+            
+            ${w.hasPartB && w.partB ? `
+              <div class="bg-gym-850/80 border border-cyan-400/20 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[9px] font-black uppercase bg-cyan-400/20 text-cyan-400 px-1.5 rounded">Part B ${w.partB.division==='Rx'?'(Rx)':'(Sc)'}</span>${w.partB.isPR ? '🏆' : ''}
+                </div>
+                <h4 class="text-sm font-black text-white">${w.partB.name} <span class="font-normal text-slate-400">(${w.partB.type})</span></h4>
+                <div class="bg-gym-900 p-1.5 rounded text-center"><span class="text-sm font-mono font-black text-cyan-400">${w.partB.score}</span></div>
+                <p class="text-[10px] text-slate-400 italic">${w.partB.notes||''}</p>
+              </div>
+            ` : ''}
           </div>
-        `;
-      }).join('');
+        </div>
+      `;
     }
 
-    function handleDeleteLog(id) {
-      if (!confirm('Permanently delete this workout log?')) return;
-      appState.workouts = appState.workouts.filter(w => w.id !== id);
-      saveState();
-      updateAthleteUI();
-      renderHistoryLogs();
+    function renderMyHistory() {
+      const myWods = allCloudWorkouts.filter(w => w.userId === currentUserId);
+      const c = document.getElementById('myHistoryList');
+      if (myWods.length === 0) c.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">No workouts logged yet.</div>`;
+      else c.innerHTML = myWods.map(w => generateWorkoutHtml(w, false)).join('');
     }
 
-    function openMultiPartTemplatesModal() {
-      const container = document.getElementById('templateList');
-      container.innerHTML = MULTI_PART_TEMPLATES.map((tmpl, index) => `
-        <button onclick="applyTemplate(${index})" class="w-full text-left p-3.5 bg-gym-850 hover:bg-gym-800 border border-gym-700/80 rounded-xl space-y-2 transition">
-          <div class="flex items-center justify-between">
-            <span class="font-black text-white text-xs uppercase">${tmpl.name}</span>
-            <span class="text-[10px] text-amber-400 font-bold uppercase">Load &rarr;</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
-            <div><b class="text-amber-300">Part A:</b> ${tmpl.partA.movement}</div>
-            <div><b class="text-cyan-300">Part B:</b> ${tmpl.partB.name} (${tmpl.partB.type})</div>
-          </div>
-        </button>
-      `).join('');
-      openModal('templateModal');
+    function renderCommunityFeed() {
+      const c = document.getElementById('communityFeedList');
+      if (allCloudWorkouts.length === 0) c.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Cloud feed is empty.</div>`;
+      else c.innerHTML = allCloudWorkouts.map(w => generateWorkoutHtml(w, true)).join('');
     }
 
-    function applyTemplate(index) {
-      const tmpl = MULTI_PART_TEMPLATES[index];
-      if (!tmpl) return;
-
-      closeModal('templateModal');
-      document.getElementById('logSessionTitle').value = tmpl.sessionTitle;
-
-      // Part A
-      document.getElementById('chkIncludePartA').checked = true;
-      togglePartVisibility('partA');
-      document.getElementById('partA_movement').value = tmpl.partA.movement;
-      document.getElementById('partA_scheme').value = tmpl.partA.scheme;
-      document.getElementById('partA_topWeight').value = tmpl.partA.topWeight;
-      document.getElementById('partA_notes').value = tmpl.partA.notes;
-
-      // Part B
-      document.getElementById('chkIncludePartB').checked = true;
-      togglePartVisibility('partB');
-      document.getElementById('partB_name').value = tmpl.partB.name;
-      document.getElementById('partB_type').value = tmpl.partB.type;
-      document.getElementById('partB_scheme').value = tmpl.partB.scheme;
-      document.getElementById('partB_score').value = tmpl.partB.score;
-      document.getElementById('partB_notes').value = tmpl.partB.notes;
-
-      // Part C
-      if (tmpl.partC && tmpl.partC.included) {
-        document.getElementById('chkIncludePartC').checked = true;
-        togglePartVisibility('partC');
-        document.getElementById('partC_title').value = tmpl.partC.title;
-        document.getElementById('partC_result').value = tmpl.partC.result;
-      } else {
-        document.getElementById('chkIncludePartC').checked = false;
-        togglePartVisibility('partC');
+    class SoundEngine {
+      constructor() { this.ctx = null; }
+      init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); }
+      play(f, d, t='sine') {
+        if(!document.getElementById('chkAudioSound').checked) return;
+        try {
+          this.init(); const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+          o.type = t; o.frequency.value = f; g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime+d);
+          o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+d);
+        } catch(e){}
       }
-
-      adaptMetconScorePrompt();
+      beep() { this.play(600, 0.12, 'square'); }
+      horn() { this.play(1200, 0.6); }
     }
+    const sounds = new SoundEngine();
 
-    function renderStrengthPrs() {
-      const container = document.getElementById('strengthPrGrid');
-      const active = getActiveAthlete();
+    let timer = { mode: 'forTime', running: false, ms: 0, intId: null, tick: 0, rds: 0, laps: [] };
+    
+    window.setTimerMode = (m) => {
+      window.resetTimer(); timer.mode = m;
+      document.querySelectorAll('.timer-mode-btn').forEach(b => b.className = 'timer-mode-btn py-2 text-xs font-black uppercase rounded-lg text-slate-400');
+      document.getElementById(`mode-${m}`).className = 'timer-mode-btn py-2 text-xs font-black uppercase rounded-lg bg-amber-400 text-gym-950 shadow-md';
+      ['forTime','amrap','emom','tabata'].forEach(x => document.getElementById(`cfg-${x}`).classList.add('hidden'));
+      document.getElementById(`cfg-${m}`).classList.remove('hidden');
+      document.getElementById('timerModeLabel').textContent = m.toUpperCase();
+      document.getElementById('amrapRepsPill').classList.toggle('hidden', m !== 'amrap');
+    };
 
-      container.innerHTML = STRENGTH_EXERCISES.map(lift => {
-        const matches = appState.workouts
-          .filter(w => w.athleteId === active.id && w.hasPartA && w.partA && w.partA.movement.toLowerCase().includes(lift.toLowerCase()))
-          .map(w => w.partA);
-
-        let best = '--';
-        if (matches.length > 0) {
-          const weighted = matches.filter(m => m.weightVal > 0).sort((a,b) => b.weightVal - a.weightVal);
-          best = weighted.length > 0 ? `${weighted[0].weightVal} lbs` : matches[0].topWeight;
+    window.toggleTimer = () => { sounds.init(); timer.running ? pauseT() : startT(); };
+    window.resetTimer = () => { pauseT(); timer.ms = 0; timer.rds = 0; renderClk(0); document.getElementById('countRoundsDisplay').textContent='0'; };
+    
+    function startT() {
+      timer.running = true; timer.tick = Date.now();
+      document.getElementById('btnTimerPrimaryIcon').className = 'ph-fill ph-pause text-2xl';
+      document.getElementById('btnTimerPrimaryLabel').textContent = 'PAUSE';
+      timer.intId = setInterval(() => {
+        timer.ms += Date.now() - timer.tick; timer.tick = Date.now();
+        const s = Math.floor(timer.ms/1000);
+        if(timer.mode === 'forTime') renderClk(s);
+        else if(timer.mode === 'amrap') {
+          const cap = parseInt(document.getElementById('amrapMinutes').value)*60;
+          renderClk(Math.max(0, cap-s)); if(cap-s===0) finish('AMRAP Done');
         }
-
-        return `
-          <div class="bg-gym-900 border border-gym-800 p-3 rounded-xl flex flex-col justify-between hover:border-amber-400/40 transition">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${lift}</span>
-            <div class="my-2">
-              <span class="text-xl font-black font-mono text-amber-400">${best}</span>
-            </div>
-            <button onclick="quickLogLift('${lift}')" class="text-[10px] text-slate-400 hover:text-white uppercase font-bold text-left flex items-center gap-1">
-              <i class="ph-bold ph-plus"></i> Log Load
-            </button>
-          </div>
-        `;
-      }).join('');
+      }, 100);
     }
-
-    function quickLogLift(liftName) {
-      switchTab('log');
-      document.getElementById('chkIncludePartA').checked = true;
-      togglePartVisibility('partA');
-      document.getElementById('partA_movement').value = liftName;
-      document.getElementById('partA_topWeight').focus();
+    function pauseT() {
+      clearInterval(timer.intId); timer.running = false;
+      document.getElementById('btnTimerPrimaryIcon').className = 'ph-fill ph-play text-2xl';
+      document.getElementById('btnTimerPrimaryLabel').textContent = 'START';
     }
-
-    function promptQuickStrengthPR() {
-      const lift = prompt('Enter exercise or lift name (e.g. Overhead Squat, Split Jerk):');
-      if (lift) quickLogLift(lift);
+    function renderClk(s) {
+      document.getElementById('timerMainClock').textContent = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
     }
+    function finish(msg) { pauseT(); sounds.horn(); confetti({particleCount:100, spread:70, origin:{y:0.6}}); showAlert(msg); }
+    
+    window.handleTimerLap = () => {
+      if(timer.mode==='amrap') { timer.rds++; document.getElementById('countRoundsDisplay').textContent=timer.rds; sounds.beep(); }
+    };
+
+    window.switchTab = (tId) => {
+      ['log', 'timer', 'benchmarks', 'community'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 flex items-center justify-center gap-1.5 transition';
+      });
+      document.getElementById(`view-${tId}`).classList.remove('hidden');
+      document.getElementById(`tab-${tId}`).className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-amber-400 bg-gym-800 flex items-center justify-center gap-1.5 border-b-2 border-amber-400 transition';
+    };
+
+    window.togglePartVisibility = (part) => {
+      const chk = document.getElementById(`chkInclude${part.charAt(0).toUpperCase() + part.slice(1)}`).checked;
+      document.getElementById(`section-${part}`).style.display = chk ? 'block' : 'none';
+    };
+
+    window.addExerciseRow = (part) => {
+      const row = document.createElement('div'); row.className = 'flex gap-2 exercise-row';
+      row.innerHTML = `<input type="text" list="exercise-list" placeholder="Movement" class="flex-1 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white"><input type="text" placeholder="Reps" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center"><input type="text" placeholder="Wt(lbs)" class="w-16 bg-gym-800 border border-gym-700 px-2 py-1.5 rounded-lg text-xs text-white text-center"><button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-400"><i class="ph-bold ph-x"></i></button>`;
+      document.getElementById(`${part}_exercises`).appendChild(row);
+    };
+
+    window.toggleTheme = () => {
+      document.body.classList.toggle('light-theme');
+      document.getElementById('themeIcon').className = document.body.classList.contains('light-theme') ? 'ph-bold ph-moon' : 'ph-bold ph-sun';
+    };
+
+    const BENCHMARKS = [
+      { name: 'Fran', type: 'For Time', scheme: '21-15-9:\nThrusters (95/65)\nPull-ups' },
+      { name: 'Grace', type: 'For Time', scheme: '30 Clean and Jerks (135/95)' },
+      { name: 'Cindy', type: 'AMRAP', scheme: '20 Min AMRAP:\n5 Pull-ups\n10 Push-ups\n15 Squats' }
+    ];
 
     function renderBenchmarkCards() {
-      const container = document.getElementById('benchmarkCardsGrid');
-      const active = getActiveAthlete();
-
-      container.innerHTML = BENCHMARK_WODS.map(wod => {
-        const logs = appState.workouts
-          .filter(w => w.athleteId === active.id && w.hasPartB && w.partB && w.partB.name.toLowerCase().includes(wod.name.toLowerCase()))
-          .map(w => w.partB);
-
-        let bestScore = 'Not Tested';
-        if (logs.length > 0) {
-          if (wod.type === 'For Time') {
-            const timed = logs.filter(l => l.scoreSeconds > 0).sort((a,b) => a.scoreSeconds - b.scoreSeconds);
-            bestScore = timed.length > 0 ? timed[0].score : logs[0].score;
-          } else {
-            bestScore = logs[0].score;
-          }
-        }
-
-        return `
-          <div class="bg-gym-900 border border-gym-800 rounded-xl p-4 flex flex-col justify-between gap-3">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-base font-black text-white uppercase tracking-wider">${wod.name}</span>
-                <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-gym-800 text-slate-300">${wod.type}</span>
-              </div>
-              <pre class="mt-2 text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">${wod.scheme}</pre>
-            </div>
-
-            <div class="pt-3 border-t border-gym-800 flex items-center justify-between">
-              <div>
-                <span class="text-[10px] uppercase font-bold text-slate-500 block">Personal Record</span>
-                <span class="text-base font-black font-mono ${bestScore !== 'Not Tested' ? 'text-cyan-400' : 'text-slate-600'}">${bestScore}</span>
-              </div>
-
-              <div class="flex gap-2">
-                <button onclick="launchBenchmarkTimer('${wod.name}', '${wod.type}')" class="p-2 bg-gym-800 hover:bg-gym-700 text-slate-200 rounded-lg text-xs font-bold" title="Open in Timer">
-                  <i class="ph-bold ph-timer text-base"></i>
-                </button>
-                <button onclick="selectBenchmarkPreset('${wod.name}')" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-gym-950 font-black text-xs uppercase tracking-wider rounded-lg shadow">
-                  Load & Log
-                </button>
-              </div>
-            </div>
+      document.getElementById('benchmarkCardsGrid').innerHTML = BENCHMARKS.map(b => `
+        <div class="bg-gym-900 border border-gym-800 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex justify-between">
+            <h4 class="text-sm font-black text-white uppercase">${b.name}</h4>
+            <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-gym-800 text-cyan-400">${b.type}</span>
           </div>
-        `;
-      }).join('');
-    }
-
-    function launchBenchmarkTimer(name, type) {
-      switchTab('timer');
-      if (type === 'For Time') setTimerMode('forTime');
-      else if (type === 'AMRAP') setTimerMode('amrap');
-      document.getElementById('timerModeLabel').textContent = name.toUpperCase();
-    }
-
-    function openBenchmarkSelectorModal() {
-      const container = document.getElementById('benchmarkQuickPickList');
-      container.innerHTML = BENCHMARK_WODS.map(w => `
-        <button onclick="selectBenchmarkPreset('${w.name}')" class="p-3 bg-gym-850 hover:bg-gym-800 border border-gym-700 rounded-xl text-left space-y-1">
-          <div class="flex justify-between items-center">
-            <span class="font-black text-white text-xs uppercase">${w.name}</span>
-            <span class="text-[10px] font-mono text-cyan-400">${w.type}</span>
-          </div>
-          <p class="text-[10px] text-slate-400 truncate">${w.description}</p>
-        </button>
+          <pre class="text-[10px] text-slate-400 font-mono mt-2">${b.scheme}</pre>
+        </div>
       `).join('');
-      openModal('benchmarkModal');
     }
 
-    function selectBenchmarkPreset(name) {
-      const b = BENCHMARK_WODS.find(w => w.name.toLowerCase() === name.toLowerCase());
-      if (!b) return;
-      closeModal('benchmarkModal');
-      switchTab('log');
-      document.getElementById('chkIncludePartB').checked = true;
-      togglePartVisibility('partB');
-      document.getElementById('partB_name').value = b.name;
-      document.getElementById('partB_type').value = b.type;
-      document.getElementById('partB_scheme').value = b.scheme;
-      adaptMetconScorePrompt();
-      document.getElementById('partB_score').focus();
-    }
+    const CROSSFIT_EXERCISES = ["Air Squat", "Back Squat", "Burpee", "Clean & Jerk", "Deadlift", "Double Under", "Front Squat", "Handstand Push-up", "Kettlebell Swing", "Muscle-up", "Pull-up", "Push Press", "Rowing", "Snatch", "Thruster", "Wall Ball"];
 
-    function populateLeaderboardWodDropdown() {
-      const select = document.getElementById('leaderboardWodSelect');
-      const set = new Set();
-      
-      // Pull Metcon names
-      appState.workouts.forEach(w => {
-        if (w.hasPartB && w.partB && w.partB.name) set.add(w.partB.name);
-        if (w.hasPartA && w.partA && w.partA.movement) set.add(w.partA.movement);
-      });
-
-      BENCHMARK_WODS.forEach(b => set.add(b.name));
-      STRENGTH_EXERCISES.forEach(s => set.add(s));
-
-      select.innerHTML = Array.from(set).map(title => `<option value="${title}">${title}</option>`).join('');
-    }
-
-    function renderLeaderboard() {
-      const query = document.getElementById('leaderboardWodSelect').value;
-      const tbody = document.getElementById('leaderboardTableBody');
-      const emptyState = document.getElementById('leaderboardEmptyState');
-
-      const matches = appState.workouts.filter(w => {
-        const matchesMetcon = w.hasPartB && w.partB && w.partB.name.toLowerCase() === query.toLowerCase();
-        const matchesStrength = w.hasPartA && w.partA && w.partA.movement.toLowerCase() === query.toLowerCase();
-        return matchesMetcon || matchesStrength;
-      });
-
-      if (matches.length === 0) {
-        tbody.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      emptyState.classList.add('hidden');
-
-      // Sorting: if Metcon timed, order by seconds, else weight
-      matches.sort((a, b) => {
-        const aSec = a.partB && a.partB.scoreSeconds;
-        const bSec = b.partB && b.partB.scoreSeconds;
-        if (aSec && bSec) return aSec - bSec;
-        const aWt = a.partA && a.partA.weightVal;
-        const bWt = b.partA && b.partA.weightVal;
-        if (aWt && bWt) return bWt - aWt;
-        return 0;
-      });
-
-      tbody.innerHTML = matches.map((entry, idx) => {
-        const ath = appState.athletes.find(a => a.id === entry.athleteId) || { name: 'Unknown', avatar: '?' };
-        const isFirst = idx === 0;
-
-        return `
-          <tr class="hover:bg-gym-850/50 transition">
-            <td class="py-3 px-3">
-              <span class="w-6 h-6 rounded-full flex items-center justify-center font-black ${isFirst ? 'bg-amber-400 text-gym-950 shadow-md shadow-amber-400/30' : 'bg-gym-800 text-slate-300'} text-xs">
-                ${idx + 1}
-              </span>
-            </td>
-            <td class="py-3 px-3">
-              <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded-full bg-amber-400 text-gym-950 font-bold text-[9px] flex items-center justify-center">
-                  ${ath.avatar || ath.name.charAt(0)}
-                </span>
-                <span class="font-bold text-white">${ath.name}</span>
-              </div>
-            </td>
-            <td class="py-3 px-3 font-mono font-bold text-amber-400">
-              ${entry.hasPartA && entry.partA ? (entry.partA.topWeight || entry.partA.movement) : '--'}
-            </td>
-            <td class="py-3 px-3 font-mono font-bold text-cyan-400 text-sm">
-              ${entry.hasPartB && entry.partB ? entry.partB.score : '--'}
-            </td>
-            <td class="py-3 px-3">
-              <span class="px-2 py-0.5 rounded text-[10px] uppercase ${(entry.partB && entry.partB.division === 'Rx') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-slate-800 text-slate-400'}">
-                ${(entry.partB && entry.partB.division) ? entry.partB.division : 'Rx'}
-              </span>
-            </td>
-            <td class="py-3 px-3 text-slate-400">${entry.date}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function getActiveAthlete() {
-      return appState.athletes.find(a => a.id === appState.activeAthleteId) || appState.athletes[0];
-    }
-
-    function setActiveAthlete(athleteId) {
-      appState.activeAthleteId = athleteId;
-      saveState();
-      updateAthleteUI();
-      closeModal('athleteModal');
-      renderHistoryLogs();
-      renderBenchmarkCards();
-      renderStrengthPrs();
-      renderLeaderboard();
-    }
-
-    function updateAthleteUI() {
-      const active = getActiveAthlete();
-      if (!active) return;
-      document.getElementById('currentAthleteName').textContent = active.name;
-      document.getElementById('currentAthleteAvatar').textContent = active.avatar || active.name.charAt(0);
-      document.getElementById('benchProfileName').textContent = active.name;
-      document.getElementById('benchProfileAvatar').textContent = active.avatar || active.name.charAt(0);
-
-      const athSessions = appState.workouts.filter(w => w.athleteId === active.id);
-      const strPrs = athSessions.filter(w => w.hasPartA && w.partA && w.partA.isPR).length;
-      const metPrs = athSessions.filter(w => w.hasPartB && w.partB && w.partB.isPR).length;
-
-      document.getElementById('benchProfileStats').textContent = 
-        `${athSessions.length} Sessions • ${strPrs} Strength PRs • ${metPrs} Metcon PRs`;
-
-      const select = document.getElementById('logAthleteSelect');
-      select.innerHTML = appState.athletes.map(a => 
-        `<option value="${a.id}" ${a.id === active.id ? 'selected' : ''}>${a.name}</option>`
-      ).join('');
-
-      const histSelect = document.getElementById('historyFilterAthlete');
-      histSelect.innerHTML = `<option value="ALL">All Athletes</option>` + appState.athletes.map(a => 
-        `<option value="${a.id}">${a.name}</option>`
-      ).join('');
-    }
-
-    function openAthleteModal() {
-      renderRosterList();
-      openModal('athleteModal');
-    }
-
-    function renderRosterList() {
-      const container = document.getElementById('rosterList');
-      container.innerHTML = appState.athletes.map(a => {
-        const isActive = a.id === appState.activeAthleteId;
-        const count = appState.workouts.filter(w => w.athleteId === a.id).length;
-        return `
-          <div class="flex items-center justify-between p-2.5 rounded-xl border ${isActive ? 'border-amber-400 bg-amber-400/10' : 'border-gym-800 bg-gym-850'}">
-            <div class="flex items-center gap-3">
-              <span class="w-8 h-8 rounded-full bg-amber-400 text-gym-950 font-black flex items-center justify-center text-xs">
-                ${a.avatar || a.name.charAt(0)}
-              </span>
-              <div>
-                <p class="text-xs font-bold text-white leading-tight">${a.name}</p>
-                <p class="text-[10px] text-slate-400 font-mono">${count} Sessions logged</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              ${isActive ? 
-                `<span class="text-[10px] uppercase font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-400/20">Active</span>` :
-                `<button onclick="setActiveAthlete('${a.id}')" class="px-2.5 py-1 text-[11px] font-bold bg-gym-800 hover:bg-gym-700 text-slate-200 rounded-lg border border-gym-700">Select</button>`
-              }
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function handleAddAthlete() {
-      const input = document.getElementById('newAthleteName');
-      const name = input.value.trim();
-      if (!name) return;
-      const newAth = {
-        id: 'ath-' + Date.now(),
-        name: name,
-        avatar: name.charAt(0).toUpperCase()
-      };
-      appState.athletes.push(newAth);
-      appState.activeAthleteId = newAth.id;
-      input.value = '';
-      saveState();
-      updateAthleteUI();
-      renderRosterList();
-    }
-
-    function switchTab(tabId) {
-      ['log', 'timer', 'benchmarks', 'leaderboard'].forEach(t => {
-        document.getElementById(`view-${t}`).classList.add('hidden');
-        const btn = document.getElementById(`tab-${t}`);
-        btn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition';
-      });
-
-      document.getElementById(`view-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tab-${tabId}`);
-      activeBtn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-amber-400 bg-gym-800 flex items-center justify-center gap-1.5 border-b-2 border-amber-400 transition';
-
-      if (tabId === 'benchmarks') {
-        renderBenchmarkCards();
-        renderStrengthPrs();
-      } else if (tabId === 'leaderboard') {
-        populateLeaderboardWodDropdown();
-        renderLeaderboard();
-      } else if (tabId === 'log') {
-        renderHistoryLogs();
-      }
-    }
-
-    function openModal(id) {
-      const el = document.getElementById(id);
-      el.classList.remove('hidden');
-      el.classList.add('flex');
-    }
-
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      el.classList.add('hidden');
-      el.classList.remove('flex');
-    }
-
-    function openDataModal() { openModal('dataModal'); }
-
-    function exportDataJson() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `wodforge_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    function importDataJson(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (parsed && Array.isArray(parsed.athletes) && Array.isArray(parsed.workouts)) {
-            appState = parsed;
-            saveState();
-            updateAthleteUI();
-            renderHistoryLogs();
-            renderBenchmarkCards();
-            renderStrengthPrs();
-            renderLeaderboard();
-            showStatusMsg('Data imported successfully!');
-            setTimeout(() => closeModal('dataModal'), 1000);
-          } else {
-            alert('Invalid backup JSON structure.');
-          }
-        } catch (err) {
-          alert('Could not read JSON file.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function resetToSampleData() {
-      if (!confirm('Reset all sessions back to default demo data?')) return;
-      appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
-      saveState();
-      updateAthleteUI();
-      renderHistoryLogs();
-      renderBenchmarkCards();
-      renderStrengthPrs();
-      renderLeaderboard();
-      showStatusMsg('Reset complete!');
-    }
-
-    function showStatusMsg(msg) {
-      const el = document.getElementById('dataStatusMsg');
-      el.textContent = msg;
-      el.classList.remove('hidden');
-      setTimeout(() => el.classList.add('hidden'), 3000);
-    }
-
+    // App Boot
     window.addEventListener('DOMContentLoaded', () => {
-      loadState();
-      updateAthleteUI();
+      document.getElementById('exercise-list').innerHTML = CROSSFIT_EXERCISES.map(e => `<option value="${e}">`).join('');
       document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
-      setTimerMode('forTime');
-      renderHistoryLogs();
-      renderBenchmarkCards();
-      renderStrengthPrs();
-      populateLeaderboardWodDropdown();
+      window.addExerciseRow('partA'); window.addExerciseRow('partB'); window.addExerciseRow('partC');
+      initFirebase();
     });
   </script>
 </body>
